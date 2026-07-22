@@ -13,7 +13,7 @@ export function ChatThreadSkeleton() {
     <div
       aria-busy="true"
       aria-label="Loading messages"
-      className="mx-auto flex h-full w-full max-w-3xl flex-col gap-8 overflow-hidden p-4"
+      className="mx-auto flex h-full w-full max-w-3xl flex-col gap-8 overflow-hidden p-4 pt-18 pb-40"
     >
       {ROWS.map((row, i) => (
         <div

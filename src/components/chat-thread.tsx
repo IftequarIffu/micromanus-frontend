@@ -46,7 +46,7 @@ export function ChatThread({
 
   return (
     <Conversation className="h-full min-h-0">
-      <ConversationContent className="mx-auto w-full max-w-3xl">
+      <ConversationContent className="mx-auto w-full max-w-3xl pt-18 pb-40">
         {messages.map((message) => (
           <Message from={message.role} key={message.id}>
             <MessageContent>
@@ -104,7 +104,7 @@ export function ChatThread({
           </Message>
         ))}
       </ConversationContent>
-      <ConversationScrollButton />
+      <ConversationScrollButton className="bottom-36" />
     </Conversation>
   )
 }

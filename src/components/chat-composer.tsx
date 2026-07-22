@@ -90,10 +90,17 @@ export function ChatComposer({ chatId, sticky = false }: ChatComposerProps) {
   return (
     <div
       className={cn(
-        "mx-auto flex w-full max-w-3xl flex-col gap-3 p-4",
-        sticky && "shrink-0 border-t bg-background"
+        sticky
+          ? "glass-panel z-20 w-full shrink-0 border-t border-border/50"
+          : "mx-auto w-full max-w-3xl"
       )}
     >
+      <div
+        className={cn(
+          "flex flex-col gap-3 p-4",
+          sticky && "mx-auto w-full max-w-3xl"
+        )}
+      >
       {!hasKey && selected ? (
         <Alert>
           <AlertTitle>API key required</AlertTitle>
@@ -172,6 +179,7 @@ export function ChatComposer({ chatId, sticky = false }: ChatComposerProps) {
           />
         </PromptInputFooter>
       </PromptInput>
+      </div>
     </div>
   )
 }

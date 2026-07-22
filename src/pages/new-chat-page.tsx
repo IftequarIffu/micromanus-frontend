@@ -31,12 +31,16 @@ export function NewChatPage() {
           <ChatComposer />
         </div>
       ) : (
-        <>
+        <div className="relative -mt-14 flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="min-h-0 flex-1 overflow-hidden">
             <ChatThread messages={messages} />
           </div>
-          <ChatComposer sticky />
-        </>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20">
+            <div className="pointer-events-auto">
+              <ChatComposer sticky />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

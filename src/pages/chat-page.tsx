@@ -108,7 +108,7 @@ export function ChatPage() {
   const isThreadPending = activeChatId !== chatId
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="relative -mt-14 flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="min-h-0 flex-1 overflow-hidden">
         {isThreadPending || (isLoading && messages.length === 0) ? (
           <ChatThreadSkeleton />
@@ -116,7 +116,11 @@ export function ChatPage() {
           <ChatThread messages={messages} />
         )}
       </div>
-      <ChatComposer chatId={chatId} sticky />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20">
+        <div className="pointer-events-auto">
+          <ChatComposer chatId={chatId} sticky />
+        </div>
+      </div>
     </div>
   )
 }
