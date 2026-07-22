@@ -4,6 +4,8 @@ import { useQueryClient } from "@tanstack/react-query"
 import { ChatComposer } from "@/components/chat-composer"
 import { ChatThread } from "@/components/chat-thread"
 import { ChatThreadSkeleton } from "@/components/chat-thread-skeleton"
+import { ChatUsagePanel } from "@/components/chat-usage-panel"
+import { TabsContent } from "@/components/ui/tabs"
 import { ApiError } from "@/lib/api"
 import {
   notifyChatListUpdated,
@@ -109,18 +111,33 @@ export function ChatPage() {
 
   return (
     <div className="relative -mt-14 flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="min-h-0 flex-1 overflow-hidden">
-        {isThreadPending || (isLoading && messages.length === 0) ? (
-          <ChatThreadSkeleton />
-        ) : (
-          <ChatThread messages={messages} />
-        )}
-      </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20">
-        <div className="pointer-events-auto">
-          <ChatComposer chatId={chatId} sticky />
+      <TabsContent
+        value="chat"
+        keepMounted
+        className="relative min-h-0 flex-1 overflow-hidden data-hidden:hidden"
+      >
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-hidden">
+            {isThreadPending || (isLoading && messages.length === 0) ? (
+              <ChatThreadSkeleton />
+            ) : (
+              <ChatThread messages={messages} />
+            )}
+          </div>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20">
+            <div className="pointer-events-auto">
+              <ChatComposer chatId={chatId} sticky />
+            </div>
+          </div>
         </div>
-      </div>
+      </TabsContent>
+
+      <TabsContent
+        value="usage"
+        className="min-h-0 flex-1 overflow-hidden pt-14 data-hidden:hidden"
+      >
+        <ChatUsagePanel chatId={chatId} />
+      </TabsContent>
     </div>
   )
 }

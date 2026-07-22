@@ -1,6 +1,7 @@
 import { Navigate } from "react-router"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/providers/auth-provider"
 
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -50,6 +51,9 @@ export function LoginPage() {
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_oklch(0.95_0.02_250),_transparent_55%),radial-gradient(ellipse_at_bottom,_oklch(0.94_0.03_80),_transparent_50%)] dark:bg-[radial-gradient(ellipse_at_top,_oklch(0.28_0.04_250),_transparent_55%),radial-gradient(ellipse_at_bottom,_oklch(0.22_0.03_80),_transparent_50%)]"
       />
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle />
+      </div>
       <div className="relative z-10 flex w-full max-w-sm flex-col gap-8">
         <div className="flex flex-col gap-2 text-center">
           <h1 className="font-heading text-4xl font-semibold tracking-tight">

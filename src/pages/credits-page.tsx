@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { useSearchParams } from "react-router"
+import { Link, useSearchParams } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -12,39 +12,75 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { BuyCreditsForm } from "@/components/buy-credits-form"
 import { CouponForm } from "@/components/coupon-form"
 import { queryKeys } from "@/lib/query-keys"
-import { useCredits } from "@/hooks/use-api"
-import type { CreditUsage } from "@/lib/types"
+import { formatUsd } from "@/lib/format-usd"
+import { useCredits, useModels } from "@/hooks/use-api"
+import type { ChatModelUsage, ChatUsageSummary } from "@/lib/types"
 
-function formatWhen(iso: string) {
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(iso))
-  } catch {
-    return iso
-  }
+function chatHeading(chat: ChatUsageSummary) {
+  const title = chat.title?.trim()
+  if (title) return title
+  return `Chat ${chat.chatId.slice(0, 8)}`
 }
 
-function UsageRow({ row }: { row: CreditUsage }) {
+function ModelUsageRow({
+  row,
+  label,
+}: {
+  row: ChatModelUsage
+  label: string
+}) {
   return (
     <li className="flex items-start justify-between gap-4 border-b py-3 last:border-b-0">
       <div className="min-w-0 flex flex-col gap-0.5">
-        <p className="truncate text-sm font-medium">{row.model_name}</p>
-        <p className="text-muted-foreground text-xs">
-          {row.provider} · {formatWhen(row.created_at)}
-        </p>
+        <p className="truncate text-sm font-medium">{label}</p>
+        <p className="text-muted-foreground text-xs">{row.provider}</p>
       </div>
       <div className="shrink-0 text-right">
-        <p className="text-sm font-medium">
-          −{row.credits_charged.toLocaleString()}
-        </p>
+        <p className="text-sm font-medium">{formatUsd(row.costUsd)}</p>
         <p className="text-muted-foreground text-xs">
-          {row.input_tokens.toLocaleString()} in /{" "}
-          {row.output_tokens.toLocaleString()} out
+          {row.inputTokens.toLocaleString()} in /{" "}
+          {row.outputTokens.toLocaleString()} out
         </p>
       </div>
     </li>
+  )
+}
+
+function ChatUsageBlock({
+  chat,
+  modelLabel,
+}: {
+  chat: ChatUsageSummary
+  modelLabel: (modelName: string) => string
+}) {
+  const chatCost = chat.models.reduce((sum, m) => sum + m.costUsd, 0)
+
+  return (
+    <article className="flex flex-col gap-2 py-4">
+      <div className="flex items-baseline justify-between gap-4">
+        <div className="min-w-0 flex flex-col gap-0.5">
+          <Link
+            to={`/chat/${chat.chatId}`}
+            className="truncate text-sm font-medium hover:underline"
+          >
+            {chatHeading(chat)}
+          </Link>
+          <p className="text-muted-foreground text-xs">
+            {chat.models.length} model{chat.models.length === 1 ? "" : "s"}
+          </p>
+        </div>
+        <p className="shrink-0 text-sm font-medium">{formatUsd(chatCost)}</p>
+      </div>
+      <ul>
+        {chat.models.map((row) => (
+          <ModelUsageRow
+            key={row.modelName}
+            row={row}
+            label={modelLabel(row.modelName)}
+          />
+        ))}
+      </ul>
+    </article>
   )
 }
 
@@ -53,6 +89,7 @@ export function CreditsPage() {
   const checkout = params.get("checkout")
   const qc = useQueryClient()
   const { data, isLoading, isError, isFetching } = useCredits()
+  const { data: modelsData } = useModels()
 
   useEffect(() => {
     if (checkout !== "success") return
@@ -67,7 +104,12 @@ export function CreditsPage() {
     return () => window.clearInterval(id)
   }, [checkout, qc])
 
-  const usage = data?.usage ?? []
+  const usageByChat = data?.usageByChat ?? []
+  const labelById = new Map(
+    (modelsData ?? []).map((m) => [m.id, m.label] as const),
+  )
+  const modelLabel = (modelName: string) =>
+    labelById.get(modelName) ?? modelName
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 p-6">
@@ -132,28 +174,39 @@ export function CreditsPage() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-medium">Recent usage</h2>
+        <div className="flex flex-col gap-1">
+          <h2 className="text-lg font-medium">Usage by chat</h2>
+          <p className="text-muted-foreground text-sm">
+            Token totals and estimated provider cost (USD) per model in each
+            chat.
+          </p>
+        </div>
         {isLoading ? (
           <div className="flex flex-col gap-3">
             <Skeleton className="h-12 w-full" />
             <Skeleton className="h-12 w-full" />
             <Skeleton className="h-12 w-full" />
           </div>
-        ) : usage.length === 0 ? (
+        ) : usageByChat.length === 0 ? (
           <Empty className="border">
             <EmptyHeader>
               <EmptyTitle>No usage yet</EmptyTitle>
               <EmptyDescription>
-                Credit charges from chats will show up here.
+                Token usage and estimated provider spend from chats will show up
+                here.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (
-          <ul className="border-y">
-            {usage.map((row) => (
-              <UsageRow key={row.id} row={row} />
+          <div className="divide-y border-y">
+            {usageByChat.map((chat) => (
+              <ChatUsageBlock
+                key={chat.chatId}
+                chat={chat}
+                modelLabel={modelLabel}
+              />
             ))}
-          </ul>
+          </div>
         )}
       </section>
     </div>

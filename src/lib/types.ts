@@ -52,6 +52,22 @@ export type CreditUsage = {
   created_at: string
 }
 
+export type ChatModelUsage = {
+  modelName: string
+  provider: Provider
+  inputTokens: number
+  outputTokens: number
+  cachedTokens: number
+  /** Estimated provider API cost in USD (BYOK). */
+  costUsd: number
+}
+
+export type ChatUsageSummary = {
+  chatId: string
+  title: string | null
+  models: ChatModelUsage[]
+}
+
 export type ChatDetail = {
   id: string
   title: string | null
@@ -63,7 +79,7 @@ export type ChatDetail = {
 
 export type CreditsResponse = {
   balance: number
-  usage: CreditUsage[]
+  usageByChat: ChatUsageSummary[]
 }
 
 export type CheckoutResponse = {

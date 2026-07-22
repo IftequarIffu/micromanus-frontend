@@ -156,7 +156,7 @@ export function useRedeemCoupon() {
     onSuccess: (result) => {
       qc.setQueryData<CreditsResponse>(queryKeys.credits(), (prev) => ({
         balance: result.balance,
-        usage: prev?.usage ?? [],
+        usageByChat: prev?.usageByChat ?? [],
       }))
       void qc.invalidateQueries({ queryKey: queryKeys.credits() })
     },

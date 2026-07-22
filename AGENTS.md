@@ -557,8 +557,25 @@ Permanently deletes the chat for the authenticated owner: messages, sources, per
 **GET** `/credits?chatId=` (optional filter)
 
 ```ts
-{ balance: number; usage: CreditUsage[] }
+{
+  balance: number;
+  usageByChat: Array<{
+    chatId: string;
+    title: string | null;
+    models: Array<{
+      modelName: string;
+      provider: "openai" | "claude" | "gemini";
+      inputTokens: number;
+      outputTokens: number;
+      cachedTokens: number;
+      /** Estimated provider API cost in USD (BYOK list prices). */
+      costUsd: number;
+    }>;
+  }>;
+}
 ```
+
+Chats are ordered by most recent usage. Within each chat, token totals and estimated USD cost are aggregated per model.
 
 **POST** `/credits/checkout`
 

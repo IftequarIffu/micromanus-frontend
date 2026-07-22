@@ -1,24 +1,70 @@
-import { Outlet } from "react-router"
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { useEffect, useState } from "react"
+import { Outlet, useMatch } from "react-router"
+import { ChartColumnIcon, MessageSquareIcon } from "lucide-react"
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChatSidebar } from "@/components/chat-sidebar"
 import { CreditBadge } from "@/components/credit-badge"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function AppShell() {
+  const chatMatch = useMatch("/chat/:chatId")
+  const [chatTab, setChatTab] = useState("chat")
+
+  useEffect(() => {
+    setChatTab("chat")
+  }, [chatMatch?.params.chatId])
+
   return (
     <SidebarProvider className="h-svh overflow-hidden">
       <ChatSidebar />
       <SidebarInset className="relative min-h-0 overflow-hidden">
-        <header className="glass-panel absolute inset-x-0 top-0 z-20 flex h-14 items-center gap-3 border-b border-border/50 px-4">
-          <SidebarTrigger />
-          <Separator orientation="vertical" className="h-4" />
-          <div className="flex flex-1 items-center justify-end">
-            <CreditBadge />
+        <Tabs
+          value={chatTab}
+          onValueChange={(value) => {
+            if (typeof value === "string") setChatTab(value)
+          }}
+          className="flex h-full min-h-0 flex-1 flex-col gap-0 overflow-hidden"
+        >
+          <header className="glass-panel absolute inset-x-0 top-0 z-20 grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-border/50 px-4">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger />
+              <Separator orientation="vertical" className="h-4" />
+            </div>
+
+            <div className="flex justify-center">
+              {chatMatch ? (
+                <TabsList
+                  variant="line"
+                  className="h-9 gap-4 rounded-none bg-transparent p-0"
+                >
+                  <TabsTrigger value="chat" className="flex-none px-1">
+                    <MessageSquareIcon data-icon="inline-start" />
+                    Chat
+                  </TabsTrigger>
+                  <TabsTrigger value="usage" className="flex-none px-1">
+                    <ChartColumnIcon data-icon="inline-start" />
+                    Usage
+                  </TabsTrigger>
+                </TabsList>
+              ) : null}
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <ThemeToggle />
+              <CreditBadge />
+            </div>
+          </header>
+
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-14">
+            <Outlet />
           </div>
-        </header>
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-14">
-          <Outlet />
-        </div>
+        </Tabs>
       </SidebarInset>
     </SidebarProvider>
   )
