@@ -27,6 +27,7 @@ export type ChatMessage = {
   content: string
   model: string | null
   created_at: string
+  pdf?: StreamPdf
 }
 
 export type ChatSource = {

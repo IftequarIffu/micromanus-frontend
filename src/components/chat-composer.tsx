@@ -30,10 +30,9 @@ const MODEL_STORAGE_KEY = "micromanus.selected-model"
 
 type ChatComposerProps = {
   chatId?: string
-  centered?: boolean
 }
 
-export function ChatComposer({ chatId, centered }: ChatComposerProps) {
+export function ChatComposer({ chatId }: ChatComposerProps) {
   const { data: models, isLoading: modelsLoading } = useModels()
   const { data: keys } = useApiKeys()
   const { data: credits } = useCredits()
@@ -86,13 +85,7 @@ export function ChatComposer({ chatId, centered }: ChatComposerProps) {
   }
 
   return (
-    <div
-      className={
-        centered
-          ? "mx-auto flex w-full max-w-2xl flex-col gap-3 p-4"
-          : "mx-auto flex w-full max-w-3xl flex-col gap-3 p-4"
-      }
-    >
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 p-4">
       {!hasKey && selected ? (
         <Alert>
           <AlertTitle>API key required</AlertTitle>

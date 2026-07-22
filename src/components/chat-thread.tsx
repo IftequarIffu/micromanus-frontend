@@ -46,7 +46,7 @@ export function ChatThread({
 
   return (
     <Conversation className="h-full">
-      <ConversationContent>
+      <ConversationContent className="mx-auto w-full max-w-3xl">
         {messages.map((message) => (
           <Message from={message.role} key={message.id}>
             <MessageContent>
@@ -73,13 +73,14 @@ export function ChatThread({
                         <ToolOutput
                           output={
                             <a
-                              className="inline-flex items-center gap-2 text-sm underline"
+                              className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
                               href={message.pdf.url}
                               target="_blank"
                               rel="noreferrer"
+                              download={message.pdf.filename}
                             >
-                              <FileTextIcon />
-                              {message.pdf.filename}
+                              <FileTextIcon className="size-4" />
+                              Download PDF
                             </a>
                           }
                           errorText={undefined}

@@ -116,7 +116,7 @@ Use React Query for **JSON** reads/mutations. Keep the **SSE chat stream** in de
 | `['api-keys']` | `GET /api-keys` |
 | `['credits', chatId?]` | `GET /credits` |
 | `['chat', chatId]` | `GET /chats/:chatId` |
-| mutations | `POST/DELETE /api-keys`, `POST /credits/checkout`, `POST /credits/redeem` |
+| mutations | `POST/DELETE /api-keys`, `DELETE /chats/:chatId`, `POST /credits/checkout`, `POST /credits/redeem` |
 
 Invalidate `['credits']` after successful chat `done`, checkout return, and redeem. Invalidate `['api-keys']` after save/delete. Invalidate `['chat', chatId]` after a successful follow-up `done` if you are not merging SSE into local cache yourself.
 
@@ -154,7 +154,7 @@ With a proxy, the browser calls same-origin paths (e.g. `fetch("/models")`). Wit
 | ----------------------- | ---------------- | ---------------------------------------------------------------- |
 | Login (Google / GitHub) | `/login`         | Supabase Auth → then `GET /me`                                   |
 | New chat composer       | `/` or `/new`    | `POST /chats/messages` (SSE)                                     |
-| Existing chat           | `/chat/:chatId`  | `GET /chats/:chatId`, `POST /chats/:chatId/messages`             |
+| Existing chat           | `/chat/:chatId`  | `GET /chats/:chatId`, `POST /chats/:chatId/messages`, `DELETE /chats/:chatId` |
 | Model picker            | composer         | `GET /models`                                                    |
 | BYOK keys               | `/settings/keys` | `GET/POST/DELETE /api-keys`                                      |
 | Credits                 | `/credits`       | `GET /credits`, `POST /credits/checkout`, `POST /credits/redeem` |
@@ -196,7 +196,7 @@ Optional: `/settings` layout wrapping keys. Protect all non-login routes with an
 | --- | --- |
 | `AuthProvider` / session gate | Hold Supabase session; redirect unauthenticated users to `/login` |
 | `AppShell` | Sidebar + top bar (balance badge, settings link) — shadcn layout primitives |
-| `ChatSidebar` | Client-side list of chats (localStorage — see §7) |
+| `ChatSidebar` | Client-side list of chats (localStorage — see §7); delete removes server chat + local item |
 | `CreditBadge` | Remaining balance from React Query `['credits']` |
 | `ApiKeyForm` | Provider select + key input; list shows `••••{last_four}` |
 | `CheckoutPackages` | Cards for `starter` / `standard` / `pro` |
@@ -340,6 +340,8 @@ type ChatListItem = {
 ```
 
 Update on `chat_created` and after successful `done`. Opening a chat still hydrates from `GET /chats/:chatId`. Clearing storage only loses the sidebar, not server data.
+
+**Delete:** sidebar trash → confirm → `DELETE /chats/:chatId` (204). On success, remove the local list item, clear stream state if that chat was open, and navigate to `/new`. Server removes the chat row (messages/sources/usage cascade) and Storage PDFs under `chat-pdfs/{userId}/{chatId}/`.
 
 ## 7.5 Prerequisites before send
 
@@ -531,6 +533,10 @@ Same body → SSE without `chat_created`
   }>;
 }
 ```
+
+**DELETE** `/chats/:chatId` → `204` empty body
+
+Permanently deletes the chat for the authenticated owner: messages, sources, per-chat credit usage rows (Postgres cascade), and PDF objects in the `chat-pdfs` bucket for that chat. Wrong owner / missing → `404` `chat_not_found`.
 
 
 

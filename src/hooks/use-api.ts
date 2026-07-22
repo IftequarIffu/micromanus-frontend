@@ -126,7 +126,11 @@ export function useRedeemCoupon() {
         token: token!,
         body: JSON.stringify({ code }),
       }),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      qc.setQueryData<CreditsResponse>(queryKeys.credits(), (prev) => ({
+        balance: result.balance,
+        usage: prev?.usage ?? [],
+      }))
       void qc.invalidateQueries({ queryKey: queryKeys.credits() })
     },
   })
@@ -145,6 +149,22 @@ export function useChat(chatId: string | undefined) {
     retry: (count, err) => {
       if (err instanceof ApiError && err.status === 404) return false
       return count < 2
+    },
+  })
+}
+
+export function useDeleteChat() {
+  const token = useToken()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (chatId: string) =>
+      api<void>(`/chats/${chatId}`, {
+        method: "DELETE",
+        token: token!,
+      }),
+    onSuccess: (_data, chatId) => {
+      qc.removeQueries({ queryKey: queryKeys.chat(chatId) })
+      void qc.invalidateQueries({ queryKey: queryKeys.credits() })
     },
   })
 }

@@ -28,7 +28,7 @@ export function NewChatPage() {
               Pick a model, send a message, and a chat is created for you.
             </p>
           </div>
-          <ChatComposer centered />
+          <ChatComposer />
         </div>
       ) : (
         <>

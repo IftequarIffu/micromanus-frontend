@@ -4,6 +4,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { ChatComposer } from "@/components/chat-composer"
 import { ChatThread } from "@/components/chat-thread"
 import { ApiError } from "@/lib/api"
+import { titleFromChat, upsertChatListItem } from "@/lib/chat-list"
 import { useChat } from "@/hooks/use-api"
 import { useChatStream } from "@/providers/chat-stream-provider"
 import type { UiMessage } from "@/lib/types"
@@ -17,6 +18,9 @@ export function ChatPage() {
     if (!chatId || !data) return
     // Don't clobber an in-flight stream for this chat.
     if (isStreaming && activeChatId === chatId) return
+    // Keep SSE-merged local messages; refetching after `done` often returns
+    // briefly-stale data and would make the reply flicker away/back.
+    if (activeChatId === chatId && messages.length > 0) return
 
     const byMessage = new Map<string, { title: string; url: string }[]>()
     for (const s of data.sources) {
@@ -31,10 +35,22 @@ export function ChatPage() {
       content: m.content,
       status: "complete",
       sources: byMessage.get(m.id),
+      ...(m.pdf ? { pdf: m.pdf } : {}),
     }))
 
+    // Heal sidebar title from the conversation opener (or backend title).
+    upsertChatListItem({
+      chatId,
+      title: titleFromChat({
+        backendTitle: data.title,
+        messages: data.messages,
+      }),
+      updatedAt: new Date().toISOString(),
+    })
+    window.dispatchEvent(new Event("micromanus:chat-list-updated"))
+
     hydrateChat(chatId, next)
-  }, [chatId, data, hydrateChat, isStreaming, activeChatId])
+  }, [chatId, data, hydrateChat, isStreaming, activeChatId, messages.length])
 
   if (!chatId) {
     return <Navigate to="/new" replace />

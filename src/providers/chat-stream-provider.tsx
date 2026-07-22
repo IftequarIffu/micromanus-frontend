@@ -191,12 +191,18 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
               if (done.pdf) pdf = done.pdf
               resolvedChatId = done.chatId
               setActiveChatId(done.chatId)
-              upsertChatListItem({
-                chatId: done.chatId,
-                title: titleFromContent(trimmed),
-                updatedAt: new Date().toISOString(),
-              })
+              upsertChatListItem(
+                {
+                  chatId: done.chatId,
+                  title: titleFromContent(trimmed),
+                  updatedAt: new Date().toISOString(),
+                },
+                // Keep the first-message title; don't rename on follow-ups.
+                { keepTitle: true }
+              )
               void queryClient.invalidateQueries({ queryKey: queryKeys.credits() })
+              // Refresh cache for later visits; ChatPage skips hydrate while
+              // this thread is already on screen so the reply won't flicker.
               if (done.chatId) {
                 void queryClient.invalidateQueries({
                   queryKey: queryKeys.chat(done.chatId),

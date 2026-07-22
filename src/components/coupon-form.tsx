@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
@@ -13,41 +14,68 @@ import { ApiError } from "@/lib/api"
 import { messageForCode } from "@/lib/errors"
 import { useRedeemCoupon } from "@/hooks/use-api"
 
+const COUPON_CODES = new Set([
+  "coupon_inactive",
+  "coupon_expired",
+  "coupon_exhausted",
+  "coupon_not_found",
+  "coupon_already_redeemed",
+  "invalid_body",
+])
+
 export function CouponForm() {
   const redeem = useRedeemCoupon()
   const [code, setCode] = useState("")
+  const [fieldError, setFieldError] = useState<string | null>(null)
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!code.trim()) return
+    const trimmed = code.trim()
+    if (!trimmed) return
+
+    setFieldError(null)
 
     try {
-      const result = await redeem.mutateAsync(code.trim())
+      const result = await redeem.mutateAsync(trimmed)
       toast.success(
-        `Granted ${result.creditsGranted} credits. Balance: ${result.balance}.`
+        `Granted ${result.creditsGranted.toLocaleString()} credits. Balance: ${result.balance.toLocaleString()}.`
       )
       setCode("")
     } catch (err) {
       const c = err instanceof ApiError ? err.code : "unknown"
-      toast.error(messageForCode(c))
+      const message = messageForCode(c)
+      if (COUPON_CODES.has(c)) {
+        setFieldError(message)
+      } else {
+        toast.error(message)
+      }
     }
   }
 
   return (
     <form onSubmit={onSubmit} className="max-w-md">
       <FieldGroup>
-        <Field>
+        <Field data-invalid={fieldError ? true : undefined}>
           <FieldLabel htmlFor="coupon">Coupon code</FieldLabel>
           <Input
             id="coupon"
             value={code}
-            onChange={(e) => setCode(e.target.value)}
+            onChange={(e) => {
+              setCode(e.target.value)
+              if (fieldError) setFieldError(null)
+            }}
             placeholder="WELCOME100"
             autoComplete="off"
+            aria-invalid={fieldError ? true : undefined}
+            disabled={redeem.isPending}
           />
-          <FieldDescription>
-            Codes are trimmed and uppercased on the server.
-          </FieldDescription>
+          {fieldError ? (
+            <FieldError>{fieldError}</FieldError>
+          ) : (
+            <FieldDescription>
+              Codes are trimmed and uppercased on the server.
+            </FieldDescription>
+          )}
         </Field>
         <Button type="submit" disabled={redeem.isPending || !code.trim()}>
           {redeem.isPending ? <Spinner data-icon="inline-start" /> : null}
