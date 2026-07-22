@@ -1,9 +1,9 @@
 import { useEffect } from "react"
 import { Navigate, useParams } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
-import { Spinner } from "@/components/ui/spinner"
 import { ChatComposer } from "@/components/chat-composer"
 import { ChatThread } from "@/components/chat-thread"
+import { ChatThreadSkeleton } from "@/components/chat-thread-skeleton"
 import { ApiError } from "@/lib/api"
 import {
   notifyChatListUpdated,
@@ -103,20 +103,20 @@ export function ChatPage() {
     return <Navigate to="/new" replace />
   }
 
-  if (isLoading && messages.length === 0 && activeChatId !== chatId) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <Spinner className="size-6" />
-      </div>
-    )
-  }
+  // Thread state lives above the route; until hydrate matches this chatId,
+  // keep showing a skeleton instead of the previous chat's messages.
+  const isThreadPending = activeChatId !== chatId
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1">
-        <ChatThread messages={messages} />
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {isThreadPending || (isLoading && messages.length === 0) ? (
+          <ChatThreadSkeleton />
+        ) : (
+          <ChatThread messages={messages} />
+        )}
       </div>
-      <ChatComposer chatId={chatId} />
+      <ChatComposer chatId={chatId} sticky />
     </div>
   )
 }

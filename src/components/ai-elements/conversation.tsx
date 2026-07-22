@@ -26,10 +26,17 @@ export type ConversationContentProps = ComponentProps<
 
 export const ConversationContent = ({
   className,
+  scrollClassName,
   ...props
 }: ConversationContentProps) => (
   <StickToBottom.Content
     className={cn("flex flex-col gap-8 p-4", className)}
+    // StickToBottom sets scrollbar-gutter: stable both-edges inline, which
+    // leaves white side gutters; override and style the thumb instead.
+    scrollClassName={cn(
+      "scrollbar-chat [scrollbar-gutter:auto]!",
+      scrollClassName
+    )}
     {...props}
   />
 );

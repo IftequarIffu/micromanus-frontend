@@ -25,14 +25,17 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useApiKeys, useCredits, useModels } from "@/hooks/use-api"
 import { useChatStream } from "@/providers/chat-stream-provider"
+import { cn } from "@/lib/utils"
 
 const MODEL_STORAGE_KEY = "micromanus.selected-model"
 
 type ChatComposerProps = {
   chatId?: string
+  /** Pin as a bottom bar (border + background). Off for the centered empty state. */
+  sticky?: boolean
 }
 
-export function ChatComposer({ chatId }: ChatComposerProps) {
+export function ChatComposer({ chatId, sticky = false }: ChatComposerProps) {
   const { data: models, isLoading: modelsLoading } = useModels()
   const { data: keys } = useApiKeys()
   const { data: credits } = useCredits()
@@ -85,7 +88,12 @@ export function ChatComposer({ chatId }: ChatComposerProps) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 p-4">
+    <div
+      className={cn(
+        "mx-auto flex w-full max-w-3xl flex-col gap-3 p-4",
+        sticky && "shrink-0 border-t bg-background"
+      )}
+    >
       {!hasKey && selected ? (
         <Alert>
           <AlertTitle>API key required</AlertTitle>
@@ -115,7 +123,7 @@ export function ChatComposer({ chatId }: ChatComposerProps) {
       <PromptInput onSubmit={onSubmit}>
         <PromptInputBody>
           <PromptInputTextarea
-            placeholder="Message micromanus…"
+            placeholder="Ask anything…"
             disabled={isStreaming || modelsLoading}
           />
         </PromptInputBody>

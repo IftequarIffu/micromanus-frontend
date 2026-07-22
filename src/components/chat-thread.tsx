@@ -45,7 +45,7 @@ export function ChatThread({
   }
 
   return (
-    <Conversation className="h-full">
+    <Conversation className="h-full min-h-0">
       <ConversationContent className="mx-auto w-full max-w-3xl">
         {messages.map((message) => (
           <Message from={message.role} key={message.id}>
@@ -77,10 +77,9 @@ export function ChatThread({
                               href={message.pdf.url}
                               target="_blank"
                               rel="noreferrer"
-                              download={message.pdf.filename}
                             >
                               <FileTextIcon className="size-4" />
-                              Download PDF
+                              View PDF
                             </a>
                           }
                           errorText={undefined}
