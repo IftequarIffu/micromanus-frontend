@@ -5,7 +5,7 @@ const MESSAGES: Record<string, string> = {
   invalid_api_key: "That API key looks invalid.",
   api_key_not_configured: "Add an API key for this model’s provider first.",
   unknown_model: "Unknown model. Refresh and try again.",
-  invalid_package: "Unknown credit package.",
+  invalid_credits: "Buy at least 5 credits ($5 minimum).",
   coupon_inactive: "This coupon is inactive.",
   coupon_expired: "This coupon has expired.",
   coupon_exhausted: "This coupon has no redemptions left.",

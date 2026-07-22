@@ -9,7 +9,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
-import { CheckoutPackages } from "@/components/checkout-packages"
+import { BuyCreditsForm } from "@/components/buy-credits-form"
 import { CouponForm } from "@/components/coupon-form"
 import { queryKeys } from "@/lib/query-keys"
 import { useCredits } from "@/hooks/use-api"
@@ -123,7 +123,7 @@ export function CreditsPage() {
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Buy credits</h2>
-        <CheckoutPackages />
+        <BuyCreditsForm />
       </section>
 
       <section className="flex flex-col gap-4">

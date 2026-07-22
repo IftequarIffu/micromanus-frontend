@@ -66,8 +66,6 @@ export type CreditsResponse = {
   usage: CreditUsage[]
 }
 
-export type CreditPackageId = "starter" | "standard" | "pro"
-
 export type CheckoutResponse = {
   url: string
   sessionId: string

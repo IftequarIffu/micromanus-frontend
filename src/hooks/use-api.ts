@@ -7,7 +7,6 @@ import type {
   ChatDetail,
   ChatSummary,
   CheckoutResponse,
-  CreditPackageId,
   CreditsResponse,
   Me,
   ModelDefinition,
@@ -135,11 +134,11 @@ export function useCredits(chatId?: string) {
 export function useCheckout() {
   const token = useToken()
   return useMutation({
-    mutationFn: (packageId: CreditPackageId) =>
+    mutationFn: (credits: number) =>
       api<CheckoutResponse>("/credits/checkout", {
         method: "POST",
         token: token!,
-        body: JSON.stringify({ packageId }),
+        body: JSON.stringify({ credits }),
       }),
   })
 }
