@@ -24,21 +24,28 @@ export function ChatPage() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const { data, isLoading, error, isError } = useChat(chatId)
-  const { messages, hydrateChat, isStreaming, activeChatId, clearThread } =
-    useChatStream()
+  const {
+    getMessages,
+    hydrateChat,
+    isStreaming,
+    streamingChatId,
+    clearThread,
+  } = useChatStream()
+
+  const messages = getMessages(chatId)
 
   useEffect(() => {
     if (!chatId || !data) return
     // Don't clobber an in-flight stream for this chat.
-    if (isStreaming && activeChatId === chatId) return
+    if (isStreaming && streamingChatId === chatId) return
     // Keep SSE-merged local messages; refetching after `done` often returns
     // briefly-stale data and would make the reply flicker away/back.
-    if (activeChatId === chatId && messages.length > 0) return
+    if (messages.length > 0) return
 
     const byMessage = new Map<string, { title: string; url: string }[]>()
     for (const s of data.sources) {
       const list = byMessage.get(s.message_id) ?? []
-      list.push({ title: s.content || s.source_link, url: s.source_link })
+      list.push({ title: s.source_link, url: s.source_link })
       byMessage.set(s.message_id, list)
     }
 
@@ -70,7 +77,7 @@ export function ChatPage() {
     data,
     hydrateChat,
     isStreaming,
-    activeChatId,
+    streamingChatId,
     messages.length,
     user?.id,
   ])
@@ -86,16 +93,8 @@ export function ChatPage() {
     removeChatListItem(user.id, chatId)
     notifyChatListUpdated()
     void queryClient.invalidateQueries({ queryKey: queryKeys.chats() })
-    if (activeChatId === chatId) clearThread()
-  }, [
-    chatId,
-    user?.id,
-    isError,
-    error,
-    activeChatId,
-    clearThread,
-    queryClient,
-  ])
+    clearThread(chatId)
+  }, [chatId, user?.id, isError, error, clearThread, queryClient])
 
   if (!chatId) {
     return <Navigate to="/new" replace />
@@ -105,9 +104,9 @@ export function ChatPage() {
     return <Navigate to="/new" replace />
   }
 
-  // Thread state lives above the route; until hydrate matches this chatId,
-  // keep showing a skeleton instead of the previous chat's messages.
-  const isThreadPending = activeChatId !== chatId
+  // Prefer local/streamed thread; only skeleton while waiting on the network
+  // with nothing cached for this chat yet.
+  const showSkeleton = messages.length === 0 && isLoading
 
   return (
     <div className="relative -mt-14 flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -118,7 +117,7 @@ export function ChatPage() {
       >
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
           <div className="min-h-0 flex-1 overflow-hidden">
-            {isThreadPending || (isLoading && messages.length === 0) ? (
+            {showSkeleton ? (
               <ChatThreadSkeleton />
             ) : (
               <ChatThread messages={messages} />

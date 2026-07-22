@@ -92,8 +92,8 @@ export function ChatSidebar() {
       notifyChatListUpdated()
       setPendingDelete(null)
 
+      clearThread(chatId)
       if (activeChatId === chatId || location.pathname === `/chat/${chatId}`) {
-        clearThread()
         navigate("/new", { replace: true })
       }
       toast.success("Chat deleted")

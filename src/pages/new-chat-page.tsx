@@ -4,14 +4,15 @@ import { ChatThread } from "@/components/chat-thread"
 import { useChatStream } from "@/providers/chat-stream-provider"
 
 export function NewChatPage() {
-  const { messages, clearThread, isStreaming } = useChatStream()
+  const { getMessages, clearThread, isStreaming } = useChatStream()
+  const messages = getMessages(null)
   const cleared = useRef(false)
 
   useEffect(() => {
     if (cleared.current) return
     if (isStreaming) return
     cleared.current = true
-    clearThread()
+    clearThread(null)
   }, [clearThread, isStreaming])
 
   const showEmpty = messages.length === 0

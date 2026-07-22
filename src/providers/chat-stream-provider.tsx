@@ -26,6 +26,9 @@ import type {
 } from "@/lib/types"
 import { useAuth } from "@/providers/auth-provider"
 
+/** Thread key for a new chat before `chat_created` assigns a real id. */
+const PENDING_KEY = "__pending__"
+
 type SendArgs = {
   content: string
   model: string
@@ -33,13 +36,15 @@ type SendArgs = {
 }
 
 type ChatStreamContextValue = {
-  messages: UiMessage[]
+  /** Messages for a chat (or the in-flight new chat when `chatId` is omitted). */
+  getMessages: (chatId?: string | null) => UiMessage[]
   activeChatId: string | null
+  /** Chat currently receiving SSE tokens, if any. */
+  streamingChatId: string | null
   isStreaming: boolean
   error: string | null
-  setMessages: (messages: UiMessage[]) => void
   hydrateChat: (chatId: string, messages: UiMessage[]) => void
-  clearThread: () => void
+  clearThread: (chatId?: string | null) => void
   sendMessage: (args: SendArgs) => Promise<void>
   stop: () => void
 }
@@ -50,26 +55,54 @@ function localId(prefix: string) {
   return `${prefix}_${crypto.randomUUID()}`
 }
 
+function threadKey(chatId: string | null | undefined) {
+  return chatId ?? PENDING_KEY
+}
+
 export function ChatStreamProvider({ children }: { children: ReactNode }) {
   const { token, user, signOut } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [messages, setMessages] = useState<UiMessage[]>([])
+  const [threads, setThreads] = useState<Record<string, UiMessage[]>>({})
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
+  const [streamingChatId, setStreamingChatId] = useState<string | null>(null)
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const streamChatIdRef = useRef<string | null>(null)
 
-  const clearThread = useCallback(() => {
-    setMessages([])
-    setActiveChatId(null)
+  const getMessages = useCallback(
+    (chatId?: string | null) => threads[threadKey(chatId)] ?? [],
+    [threads]
+  )
+
+  const updateThread = useCallback(
+    (
+      key: string,
+      updater: (prev: UiMessage[]) => UiMessage[]
+    ) => {
+      setThreads((prev) => ({
+        ...prev,
+        [key]: updater(prev[key] ?? []),
+      }))
+    },
+    []
+  )
+
+  const clearThread = useCallback((chatId?: string | null) => {
+    const key = threadKey(chatId)
+    setThreads((prev) => {
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+    setActiveChatId((id) => (chatId == null || id === chatId ? null : id))
     setError(null)
   }, [])
 
   const hydrateChat = useCallback((chatId: string, next: UiMessage[]) => {
+    setThreads((prev) => ({ ...prev, [chatId]: next }))
     setActiveChatId(chatId)
-    setMessages(next)
     setError(null)
   }, [])
 
@@ -103,12 +136,15 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
         status: "streaming",
       }
 
-      setMessages((prev) => [...prev, userMsg, assistantMsg])
+      const initialKey = threadKey(chatId ?? activeChatId)
+      streamChatIdRef.current = chatId ?? activeChatId
+      setStreamingChatId(streamChatIdRef.current)
+      setActiveChatId(chatId ?? activeChatId)
+      updateThread(initialKey, (prev) => [...prev, userMsg, assistantMsg])
       setIsStreaming(true)
 
       const controller = new AbortController()
       abortRef.current = controller
-      streamChatIdRef.current = chatId ?? activeChatId
 
       try {
         const res = await postChatMessageStream({
@@ -150,22 +186,34 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
 
         for await (const evt of parseSseStream(res.body)) {
           if (evt.event === "chat_created") {
-            resolvedChatId = evt.data.chatId
-            streamChatIdRef.current = evt.data.chatId
-            setActiveChatId(evt.data.chatId)
+            const newId = evt.data.chatId
+            resolvedChatId = newId
+            streamChatIdRef.current = newId
+            setStreamingChatId(newId)
+            setActiveChatId(newId)
+            // Move the pending optimistic thread onto the real chat id.
+            setThreads((prev) => {
+              const pending = prev[PENDING_KEY] ?? []
+              const next = { ...prev }
+              delete next[PENDING_KEY]
+              next[newId] = pending.length > 0 ? pending : (next[newId] ?? [])
+              return next
+            })
             if (user?.id) {
               upsertChatListItem(user.id, {
-                chatId: evt.data.chatId,
+                chatId: newId,
                 title: titleFromContent(trimmed),
                 updatedAt: new Date().toISOString(),
               })
               notifyChatListUpdated()
             }
-            navigate(`/chat/${evt.data.chatId}`, { replace: true })
+            navigate(`/chat/${newId}`, { replace: true })
           }
 
+          const key = threadKey(streamChatIdRef.current)
+
           if (evt.event === "token") {
-            setMessages((prev) =>
+            updateThread(key, (prev) =>
               prev.map((m) =>
                 m.id === assistantId
                   ? { ...m, content: m.content + evt.data.text }
@@ -176,10 +224,8 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
 
           if (evt.event === "pdf_ready") {
             pdf = { url: evt.data.url, filename: evt.data.filename }
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId ? { ...m, pdf } : m
-              )
+            updateThread(key, (prev) =>
+              prev.map((m) => (m.id === assistantId ? { ...m, pdf } : m))
             )
           }
 
@@ -197,6 +243,8 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
               sources = done.sources ?? []
               if (done.pdf) pdf = done.pdf
               resolvedChatId = done.chatId
+              streamChatIdRef.current = done.chatId
+              setStreamingChatId(done.chatId)
               setActiveChatId(done.chatId)
               if (user?.id) {
                 upsertChatListItem(
@@ -214,7 +262,7 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
               void queryClient.invalidateQueries({ queryKey: queryKeys.credits() })
               void queryClient.invalidateQueries({ queryKey: queryKeys.chats() })
               // Refresh cache for later visits; ChatPage skips hydrate while
-              // this thread is already on screen so the reply won't flicker.
+              // this thread already has local messages so the reply won't flicker.
               if (done.chatId) {
                 void queryClient.invalidateQueries({
                   queryKey: queryKeys.chat(done.chatId),
@@ -226,7 +274,7 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        setMessages((prev) =>
+        updateThread(threadKey(streamChatIdRef.current ?? resolvedChatId), (prev) =>
           prev.map((m) => {
             if (m.id !== assistantId) return m
             return {
@@ -243,8 +291,9 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
           setError((e) => e ?? "The assistant response failed.")
         }
       } catch (err) {
+        const key = threadKey(streamChatIdRef.current ?? chatId ?? activeChatId)
         if (err instanceof DOMException && err.name === "AbortError") {
-          setMessages((prev) =>
+          updateThread(key, (prev) =>
             prev.map((m) =>
               m.id === assistantId && m.status === "streaming"
                 ? { ...m, status: "failed" }
@@ -267,13 +316,15 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
 
         setError(msg)
         toast.error(msg)
-        setMessages((prev) =>
+        updateThread(key, (prev) =>
           prev.map((m) =>
             m.id === assistantId ? { ...m, status: "failed" } : m
           )
         )
       } finally {
         setIsStreaming(false)
+        setStreamingChatId(null)
+        streamChatIdRef.current = null
         abortRef.current = null
       }
     },
@@ -285,24 +336,26 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
       navigate,
       queryClient,
       signOut,
+      updateThread,
     ]
   )
 
   const value = useMemo(
     () => ({
-      messages,
+      getMessages,
       activeChatId,
+      streamingChatId,
       isStreaming,
       error,
-      setMessages,
       hydrateChat,
       clearThread,
       sendMessage,
       stop,
     }),
     [
-      messages,
+      getMessages,
       activeChatId,
+      streamingChatId,
       isStreaming,
       error,
       hydrateChat,
