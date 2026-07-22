@@ -90,17 +90,12 @@ export function ChatComposer({ chatId, sticky = false }: ChatComposerProps) {
   return (
     <div
       className={cn(
-        sticky
-          ? "glass-panel z-20 w-full shrink-0 border-t border-border/50"
-          : "mx-auto w-full max-w-3xl"
+        "mx-auto w-full max-w-3xl",
+        sticky &&
+          "glass-panel z-20 shrink-0 rounded-t-xl border border-b-0 border-border/50"
       )}
     >
-      <div
-        className={cn(
-          "flex flex-col gap-3 p-4",
-          sticky && "mx-auto w-full max-w-3xl"
-        )}
-      >
+      <div className="flex flex-col gap-3 p-4">
       {!hasKey && selected ? (
         <Alert>
           <AlertTitle>API key required</AlertTitle>
