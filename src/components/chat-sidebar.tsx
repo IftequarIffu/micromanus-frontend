@@ -114,21 +114,15 @@ export function ChatSidebar() {
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton
-                size="lg"
-                render={<Link to="/new" />}
-                tooltip="micromanus"
+              <Link
+                to="/"
+                className="inline-flex w-fit cursor-pointer items-center px-2 py-2 font-heading text-xl font-semibold tracking-tight outline-hidden group-data-[collapsible=icon]:hidden"
               >
-                <span className="font-heading text-base font-semibold tracking-tight">
-                  micromanus
-                </span>
-              </SidebarMenuButton>
+                micromanus
+              </Link>
             </SidebarMenuItem>
-            <SidebarMenuItem>
+            <SidebarMenuItem className="mt-6">
               <SidebarMenuButton
-                isActive={
-                  location.pathname === "/new" || location.pathname === "/"
-                }
                 render={<Link to="/new" />}
                 tooltip="New chat"
               >

@@ -23,6 +23,7 @@ import type {
   StreamPdf,
   StreamSource,
   UiMessage,
+  UiToolCall,
 } from "@/lib/types"
 import { useAuth } from "@/providers/auth-provider"
 
@@ -229,6 +230,60 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
             )
           }
 
+          if (evt.event === "tool_start") {
+            const { toolCallId, toolName } = evt.data
+            updateThread(key, (prev) =>
+              prev.map((m) => {
+                if (m.id !== assistantId) return m
+                const tools = m.tools ?? []
+                if (tools.some((t) => t.toolCallId === toolCallId)) {
+                  return {
+                    ...m,
+                    tools: tools.map((t) =>
+                      t.toolCallId === toolCallId
+                        ? { ...t, toolName, status: "running" as const }
+                        : t
+                    ),
+                  }
+                }
+                const next: UiToolCall = {
+                  toolCallId,
+                  toolName,
+                  status: "running",
+                }
+                return { ...m, tools: [...tools, next] }
+              })
+            )
+          }
+
+          if (evt.event === "tool_end") {
+            const { toolCallId, toolName, ok } = evt.data
+            updateThread(key, (prev) =>
+              prev.map((m) => {
+                if (m.id !== assistantId) return m
+                const tools = m.tools ?? []
+                const status = ok ? ("complete" as const) : ("error" as const)
+                if (tools.some((t) => t.toolCallId === toolCallId)) {
+                  return {
+                    ...m,
+                    tools: tools.map((t) =>
+                      t.toolCallId === toolCallId
+                        ? { ...t, toolName, status }
+                        : t
+                    ),
+                  }
+                }
+                return {
+                  ...m,
+                  tools: [
+                    ...tools,
+                    { toolCallId, toolName, status } satisfies UiToolCall,
+                  ],
+                }
+              })
+            )
+          }
+
           if (evt.event === "error") {
             const msg = messageForCode(evt.data.code, evt.data.message)
             setError(msg)
@@ -283,6 +338,7 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
               status: doneOk ? "complete" : "failed",
               sources,
               pdf,
+              tools: m.tools,
             }
           })
         )

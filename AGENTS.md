@@ -100,7 +100,7 @@ Prefer AI Elements (and underlying shadcn primitives) over one-off chat chrome:
 | Composer | Prompt Input | `content` + send → `POST .../messages` |
 | Model picker | Model Selector | `GET /models` → send `model` id |
 | Citations | Sources / Inline Citation | SSE `done.sources` + `GET /chats/:chatId` sources |
-| Tool / PDF affordance | Tool or Artifact-style chip | SSE `pdf_ready` / `done.pdf` |
+| Tool / PDF affordance | Tool or Artifact-style chip | SSE `tool_start`/`tool_end`, `pdf_ready` / `done.pdf` |
 
 Install only the elements you need (`npx ai-elements@latest` / `bunx ai-elements@latest`, or the shadcn registry flow). Non-chat screens (login, keys, credits) use **shadcn/ui** (Button, Input, Card, Form, Toast/Sonner, etc.).
 
@@ -302,8 +302,9 @@ There is **no** create-chat endpoint. `/new` is client-only.
 ```
 User on /new → POST /chats/messages { content, model }
   → SSE chat_created { chatId }     // navigate here WITHOUT aborting the stream
+  → SSE tool_start / tool_end*      // agent loop (search, pdf, …) — optional UI status
   → SSE token { text }*             // keep streaming on /chat/:chatId
-  → SSE pdf_ready? { chatId, url, filename }
+  → SSE pdf_ready? { chatId, url, filename }  // may arrive during tool_end for create_pdf
   → SSE done { ok, ... }
 ```
 
@@ -315,6 +316,7 @@ Title suggestion: derive a sidebar title from the first user message (truncate).
 
 ```
 POST /chats/:chatId/messages { content, model }
+  → SSE tool_start / tool_end*
   → SSE token*
   → SSE pdf_ready?
   → SSE done
@@ -383,13 +385,17 @@ Native `EventSource` only supports GET — **you must parse SSE from a POST** `f
 ### Events
 
 
-| Event          | When                                    | Data                                |
-| -------------- | --------------------------------------- | ----------------------------------- |
-| `chat_created` | Only `POST /chats/messages`, before LLM | `{ chatId: string }`                |
-| `token`        | Each text delta                         | `{ text: string }`                  |
-| `pdf_ready`    | Mid-stream when PDF tool succeeds       | `{ chatId, url, filename }`         |
-| `error`        | Stream failure                          | `{ message: string, code: string }` |
-| `done`         | Always ends the stream                  | see below                           |
+| Event          | When                                    | Data                                              |
+| -------------- | --------------------------------------- | ------------------------------------------------- |
+| `chat_created` | Only `POST /chats/messages`, before LLM | `{ chatId: string }`                              |
+| `tool_start`   | Before each tool execute in agent loop  | `{ chatId, toolName, toolCallId }`                |
+| `tool_end`     | After each tool execute finishes        | `{ chatId, toolName, toolCallId, ok: boolean }`   |
+| `token`        | Each text delta                         | `{ text: string }`                                |
+| `pdf_ready`    | Mid-stream when PDF tool succeeds       | `{ chatId, url, filename }`                       |
+| `error`        | Stream failure                          | `{ message: string, code: string }`               |
+| `done`         | Always ends the stream                  | see below                                         |
+
+`tool_start` / `tool_end` carry **names and ids only** (no tool args/results). Known `toolName` values today: `web_search`, `create_pdf`. Show AI Elements `Tool` status chips while streaming; safe to ignore if the UI does not show agent activity.
 
 
 `done` **success:**
@@ -667,6 +673,7 @@ sequenceDiagram
   UI->>API: POST /chats/messages Bearer
   API-->>UI: SSE chat_created
   UI->>UI: navigate /chat/id keep stream
+  API-->>UI: SSE tool_start / tool_end optional
   API-->>UI: SSE token chunks
   API-->>UI: SSE pdf_ready optional
   API-->>UI: SSE done with sources usage
@@ -686,7 +693,7 @@ sequenceDiagram
 3. **Platform credits** — chat requires `balance > 0`. Note: token→credit rates are currently **placeholder zeros** (`creditsCharged` may be `0`), but the balance gate still applies.
 4. **404 not 403** for other users’ chats — show not found.
 5. **Masked keys only** — `last_four`, never full key reveal.
-6. **Tools are model-driven** — search/PDF happen server-side during the stream; UI only displays tokens, sources, and PDF links.
+6. **Tools are model-driven** — the server runs a multi-step agent loop (think → tool → observe → repeat); UI may show status from `tool_start`/`tool_end`, and displays tokens, sources, and PDF links.
 7. **Chat list sync** — `GET /chats` is source of truth; per-user localStorage is a cache that is rewritten on fetch.
 
 ---

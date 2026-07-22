@@ -130,10 +130,30 @@ export type DoneFailure = {
 
 export type SseEvent =
   | { event: "chat_created"; data: { chatId: string } }
+  | {
+      event: "tool_start"
+      data: { chatId: string; toolName: string; toolCallId: string }
+    }
+  | {
+      event: "tool_end"
+      data: {
+        chatId: string
+        toolName: string
+        toolCallId: string
+        ok: boolean
+      }
+    }
   | { event: "token"; data: { text: string } }
   | { event: "pdf_ready"; data: { chatId: string; url: string; filename: string } }
   | { event: "error"; data: { message: string; code: string } }
   | { event: "done"; data: DoneSuccess | DoneFailure }
+
+/** Mid-stream / completed agent tool call (no args/results on the wire). */
+export type UiToolCall = {
+  toolCallId: string
+  toolName: string
+  status: "running" | "complete" | "error"
+}
 
 export type UiMessage = {
   id: string
@@ -142,6 +162,7 @@ export type UiMessage = {
   status?: "streaming" | "complete" | "failed"
   sources?: StreamSource[]
   pdf?: StreamPdf
+  tools?: UiToolCall[]
 }
 
 export type ChatListItem = {
