@@ -1,42 +1,93 @@
-import type { ChatListItem } from "@/lib/types"
+import type { ChatListItem, ChatSummary } from "@/lib/types"
 
-const STORAGE_KEY = "micromanus.chat-list"
+const LEGACY_STORAGE_KEY = "micromanus.chat-list"
 
-export function readChatList(): ChatListItem[] {
+function storageKey(userId: string) {
+  return `micromanus.chat-list.${userId}`
+}
+
+function sortByUpdatedAt(items: ChatListItem[]) {
+  return [...items].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  )
+}
+
+/** Notify listeners (sidebar) that the local chat index changed. */
+export function notifyChatListUpdated() {
+  window.dispatchEvent(new Event("micromanus:chat-list-updated"))
+}
+
+/** One-time: move pre-user-scoped list into the current user's bucket. */
+function migrateLegacyList(userId: string) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const key = storageKey(userId)
+    if (localStorage.getItem(key) != null) {
+      localStorage.removeItem(LEGACY_STORAGE_KEY)
+      return
+    }
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY)
+    if (!legacy) return
+    localStorage.setItem(key, legacy)
+    localStorage.removeItem(LEGACY_STORAGE_KEY)
+  } catch {
+    // ignore migration failures
+  }
+}
+
+export function readChatList(userId: string | null | undefined): ChatListItem[] {
+  if (!userId) return []
+  try {
+    migrateLegacyList(userId)
+    const raw = localStorage.getItem(storageKey(userId))
     if (!raw) return []
     const parsed = JSON.parse(raw) as ChatListItem[]
     if (!Array.isArray(parsed)) return []
-    return parsed.sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    )
+    return sortByUpdatedAt(parsed)
   } catch {
     return []
   }
 }
 
-export function writeChatList(items: ChatListItem[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+export function writeChatList(userId: string, items: ChatListItem[]) {
+  localStorage.setItem(storageKey(userId), JSON.stringify(sortByUpdatedAt(items)))
+}
+
+/**
+ * Replace the local sidebar index with the server list.
+ * Restores after localStorage clear; drops chats deleted in the DB.
+ */
+export function syncChatListFromServer(
+  userId: string,
+  chats: ChatSummary[]
+): ChatListItem[] {
+  const items = chats.map((c) => ({
+    chatId: c.id,
+    title: titleFromContent(c.title ?? "New chat"),
+    updatedAt: c.created_at,
+  }))
+  writeChatList(userId, items)
+  notifyChatListUpdated()
+  return sortByUpdatedAt(items)
 }
 
 export function upsertChatListItem(
+  userId: string,
   item: ChatListItem,
   options?: { keepTitle?: boolean }
 ) {
-  const list = readChatList()
+  const list = readChatList(userId)
   const existing = list.find((c) => c.chatId === item.chatId)
   const title =
     options?.keepTitle && existing?.title ? existing.title : item.title
   const next = list.filter((c) => c.chatId !== item.chatId)
   next.unshift({ ...item, title })
-  writeChatList(next)
+  writeChatList(userId, next)
   return next
 }
 
-export function removeChatListItem(chatId: string) {
-  const list = readChatList().filter((c) => c.chatId !== chatId)
-  writeChatList(list)
+export function removeChatListItem(userId: string, chatId: string) {
+  const list = readChatList(userId).filter((c) => c.chatId !== chatId)
+  writeChatList(userId, list)
   return list
 }
 

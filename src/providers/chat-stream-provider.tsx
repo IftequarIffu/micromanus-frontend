@@ -11,7 +11,11 @@ import { useNavigate } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { ApiError, parseSseStream, postChatMessageStream } from "@/lib/api"
-import { titleFromContent, upsertChatListItem } from "@/lib/chat-list"
+import {
+  notifyChatListUpdated,
+  titleFromContent,
+  upsertChatListItem,
+} from "@/lib/chat-list"
 import { messageForCode } from "@/lib/errors"
 import { queryKeys } from "@/lib/query-keys"
 import type {
@@ -47,7 +51,7 @@ function localId(prefix: string) {
 }
 
 export function ChatStreamProvider({ children }: { children: ReactNode }) {
-  const { token, signOut } = useAuth()
+  const { token, user, signOut } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [messages, setMessages] = useState<UiMessage[]>([])
@@ -149,11 +153,14 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
             resolvedChatId = evt.data.chatId
             streamChatIdRef.current = evt.data.chatId
             setActiveChatId(evt.data.chatId)
-            upsertChatListItem({
-              chatId: evt.data.chatId,
-              title: titleFromContent(trimmed),
-              updatedAt: new Date().toISOString(),
-            })
+            if (user?.id) {
+              upsertChatListItem(user.id, {
+                chatId: evt.data.chatId,
+                title: titleFromContent(trimmed),
+                updatedAt: new Date().toISOString(),
+              })
+              notifyChatListUpdated()
+            }
             navigate(`/chat/${evt.data.chatId}`, { replace: true })
           }
 
@@ -191,16 +198,21 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
               if (done.pdf) pdf = done.pdf
               resolvedChatId = done.chatId
               setActiveChatId(done.chatId)
-              upsertChatListItem(
-                {
-                  chatId: done.chatId,
-                  title: titleFromContent(trimmed),
-                  updatedAt: new Date().toISOString(),
-                },
-                // Keep the first-message title; don't rename on follow-ups.
-                { keepTitle: true }
-              )
+              if (user?.id) {
+                upsertChatListItem(
+                  user.id,
+                  {
+                    chatId: done.chatId,
+                    title: titleFromContent(trimmed),
+                    updatedAt: new Date().toISOString(),
+                  },
+                  // Keep the first-message title; don't rename on follow-ups.
+                  { keepTitle: true }
+                )
+                notifyChatListUpdated()
+              }
               void queryClient.invalidateQueries({ queryKey: queryKeys.credits() })
+              void queryClient.invalidateQueries({ queryKey: queryKeys.chats() })
               // Refresh cache for later visits; ChatPage skips hydrate while
               // this thread is already on screen so the reply won't flicker.
               if (done.chatId) {
@@ -229,8 +241,6 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
 
         if (!doneOk) {
           setError((e) => e ?? "The assistant response failed.")
-        } else if (resolvedChatId) {
-          window.dispatchEvent(new Event("micromanus:chat-list-updated"))
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
@@ -269,6 +279,7 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
     },
     [
       token,
+      user?.id,
       isStreaming,
       activeChatId,
       navigate,

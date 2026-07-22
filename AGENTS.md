@@ -56,7 +56,6 @@ Platform credits meter access to micromanus (chats/tools/storage). The user pays
 - Use `SUPABASE_SERVICE_ROLE_KEY`, `ENCRYPTION_KEY`, `STRIPE_SECRET_KEY`, `TAVILY_API_KEY`, or any other server secret
 - Implement custom OAuth against Google/GitHub (Supabase Auth owns that)
 - Add a standalone “create empty chat” call before the first message
-- Assume a `GET /chats` list API exists
 
 
 
@@ -114,11 +113,12 @@ Use React Query for **JSON** reads/mutations. Keep the **SSE chat stream** in de
 | `['me']` | `GET /me` |
 | `['models']` | `GET /models` |
 | `['api-keys']` | `GET /api-keys` |
+| `['chats', userId]` | `GET /chats` |
 | `['credits', chatId?]` | `GET /credits` |
 | `['chat', chatId]` | `GET /chats/:chatId` |
 | mutations | `POST/DELETE /api-keys`, `DELETE /chats/:chatId`, `POST /credits/checkout`, `POST /credits/redeem` |
 
-Invalidate `['credits']` after successful chat `done`, checkout return, and redeem. Invalidate `['api-keys']` after save/delete. Invalidate `['chat', chatId]` after a successful follow-up `done` if you are not merging SSE into local cache yourself.
+Invalidate `['credits']` after successful chat `done`, checkout return, and redeem. Invalidate `['api-keys']` after save/delete. Invalidate `['chats']` after `chat_created` / successful `done` / delete. Invalidate `['chat', chatId]` after a successful follow-up `done` if you are not merging SSE into local cache yourself.
 
 ### 3.4 Suggested Vite proxy
 
@@ -155,6 +155,7 @@ With a proxy, the browser calls same-origin paths (e.g. `fetch("/models")`). Wit
 | Login (Google / GitHub) | `/login`         | Supabase Auth → then `GET /me`                                   |
 | New chat composer       | `/` or `/new`    | `POST /chats/messages` (SSE)                                     |
 | Existing chat           | `/chat/:chatId`  | `GET /chats/:chatId`, `POST /chats/:chatId/messages`, `DELETE /chats/:chatId` |
+| Chat sidebar            | app shell        | `GET /chats` (+ per-user localStorage cache)                     |
 | Model picker            | composer         | `GET /models`                                                    |
 | BYOK keys               | `/settings/keys` | `GET/POST/DELETE /api-keys`                                      |
 | Credits                 | `/credits`       | `GET /credits`, `POST /credits/checkout`, `POST /credits/redeem` |
@@ -196,7 +197,7 @@ Optional: `/settings` layout wrapping keys. Protect all non-login routes with an
 | --- | --- |
 | `AuthProvider` / session gate | Hold Supabase session; redirect unauthenticated users to `/login` |
 | `AppShell` | Sidebar + top bar (balance badge, settings link) — shadcn layout primitives |
-| `ChatSidebar` | Client-side list of chats (localStorage — see §7); delete removes server chat + local item |
+| `ChatSidebar` | Synced chat list (`GET /chats` + per-user localStorage cache — see §7); delete removes server chat + local item |
 | `CreditBadge` | Remaining balance from React Query `['credits']` |
 | `ApiKeyForm` | Provider select + key input; list shows `••••{last_four}` |
 | `CheckoutPackages` | Cards for `starter` / `standard` / `pro` |
@@ -327,9 +328,9 @@ No `chat_created` event on this route.
 
 Wrong owner / missing chat → `404` `chat_not_found` (treat as not found; do not show “forbidden”).
 
-## 7.4 Chat sidebar without `GET /chats`
+## 7.4 Chat sidebar + `GET /chats` sync
 
-The backend **does not** expose a chat list. Maintain local history, e.g. `localStorage`:
+DB is the source of truth. Maintain a **per-user** localStorage cache for instant paint:
 
 ```ts
 type ChatListItem = {
@@ -337,11 +338,12 @@ type ChatListItem = {
   title: string;
   updatedAt: string; // ISO
 };
+// key: micromanus.chat-list.<userId>
 ```
 
-Update on `chat_created` and after successful `done`. Opening a chat still hydrates from `GET /chats/:chatId`. Clearing storage only loses the sidebar, not server data.
+On login / app load, `GET /chats` → replace the local cache (restores after localStorage clear; drops rows deleted in the DB). Also update the cache on `chat_created`, successful `done`, and delete. Opening a chat still hydrates from `GET /chats/:chatId`. On `404 chat_not_found`, remove that id from the local cache and invalidate `['chats']`.
 
-**Delete:** sidebar trash → confirm → `DELETE /chats/:chatId` (204). On success, remove the local list item, clear stream state if that chat was open, and navigate to `/new`. Server removes the chat row (messages/sources/usage cascade) and Storage PDFs under `chat-pdfs/{userId}/{chatId}/`.
+**Delete:** sidebar trash → confirm → `DELETE /chats/:chatId` (204). On success, remove the local list item, invalidate `['chats']`, clear stream state if that chat was open, and navigate to `/new`. Server removes the chat row (messages/sources/usage cascade) and Storage PDFs under `chat-pdfs/{userId}/{chatId}/`.
 
 ## 7.5 Prerequisites before send
 
@@ -483,6 +485,16 @@ Never expect ciphertext or full key.
 **DELETE** `/api-keys/:provider` → `204` empty body
 
 ## 9.5 Chats
+
+**GET** `/chats` → `{ chats: ChatSummary[] }` (owner’s chats, newest `created_at` first)
+
+```ts
+type ChatSummary = {
+  id: string;
+  title: string | null;
+  created_at: string;
+};
+```
 
 **POST** `/chats/messages` (new chat)
 
@@ -664,7 +676,7 @@ sequenceDiagram
 4. **404 not 403** for other users’ chats — show not found.
 5. **Masked keys only** — `last_four`, never full key reveal.
 6. **Tools are model-driven** — search/PDF happen server-side during the stream; UI only displays tokens, sources, and PDF links.
-7. **No chat list API** — use client-side history until the backend adds one.
+7. **Chat list sync** — `GET /chats` is source of truth; per-user localStorage is a cache that is rewritten on fetch.
 
 ---
 
@@ -694,7 +706,7 @@ sequenceDiagram
 6. `/new` composer with Prompt Input + Model Selector; SSE client + `chat_created` navigation
 7. `/chat/:chatId` hydrate via React Query + follow-up messages; Conversation/Message streaming
 8. Sources + PDF chip + credit badge
-9. Client-side chat sidebar (localStorage)
+9. Chat sidebar synced via `GET /chats` + per-user localStorage cache
 10. Polish error mapping (`402`, missing key, stream failures)
 
 ---

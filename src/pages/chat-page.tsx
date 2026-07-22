@@ -1,18 +1,29 @@
 import { useEffect } from "react"
 import { Navigate, useParams } from "react-router"
+import { useQueryClient } from "@tanstack/react-query"
 import { Spinner } from "@/components/ui/spinner"
 import { ChatComposer } from "@/components/chat-composer"
 import { ChatThread } from "@/components/chat-thread"
 import { ApiError } from "@/lib/api"
-import { titleFromChat, upsertChatListItem } from "@/lib/chat-list"
+import {
+  notifyChatListUpdated,
+  removeChatListItem,
+  titleFromChat,
+  upsertChatListItem,
+} from "@/lib/chat-list"
+import { queryKeys } from "@/lib/query-keys"
 import { useChat } from "@/hooks/use-api"
+import { useAuth } from "@/providers/auth-provider"
 import { useChatStream } from "@/providers/chat-stream-provider"
 import type { UiMessage } from "@/lib/types"
 
 export function ChatPage() {
   const { chatId } = useParams<{ chatId: string }>()
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
   const { data, isLoading, error, isError } = useChat(chatId)
-  const { messages, hydrateChat, isStreaming, activeChatId } = useChatStream()
+  const { messages, hydrateChat, isStreaming, activeChatId, clearThread } =
+    useChatStream()
 
   useEffect(() => {
     if (!chatId || !data) return
@@ -39,18 +50,50 @@ export function ChatPage() {
     }))
 
     // Heal sidebar title from the conversation opener (or backend title).
-    upsertChatListItem({
-      chatId,
-      title: titleFromChat({
-        backendTitle: data.title,
-        messages: data.messages,
-      }),
-      updatedAt: new Date().toISOString(),
-    })
-    window.dispatchEvent(new Event("micromanus:chat-list-updated"))
+    if (user?.id) {
+      upsertChatListItem(user.id, {
+        chatId,
+        title: titleFromChat({
+          backendTitle: data.title,
+          messages: data.messages,
+        }),
+        updatedAt: data.created_at,
+      })
+      notifyChatListUpdated()
+    }
 
     hydrateChat(chatId, next)
-  }, [chatId, data, hydrateChat, isStreaming, activeChatId, messages.length])
+  }, [
+    chatId,
+    data,
+    hydrateChat,
+    isStreaming,
+    activeChatId,
+    messages.length,
+    user?.id,
+  ])
+
+  useEffect(() => {
+    if (
+      !chatId ||
+      !user?.id ||
+      !(isError && error instanceof ApiError && error.code === "chat_not_found")
+    ) {
+      return
+    }
+    removeChatListItem(user.id, chatId)
+    notifyChatListUpdated()
+    void queryClient.invalidateQueries({ queryKey: queryKeys.chats() })
+    if (activeChatId === chatId) clearThread()
+  }, [
+    chatId,
+    user?.id,
+    isError,
+    error,
+    activeChatId,
+    clearThread,
+    queryClient,
+  ])
 
   if (!chatId) {
     return <Navigate to="/new" replace />

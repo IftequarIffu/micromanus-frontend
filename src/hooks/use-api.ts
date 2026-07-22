@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, ApiError } from "@/lib/api"
+import { syncChatListFromServer } from "@/lib/chat-list"
 import { queryKeys } from "@/lib/query-keys"
 import type {
   ApiKeyPublic,
   ChatDetail,
+  ChatSummary,
   CheckoutResponse,
   CreditPackageId,
   CreditsResponse,
@@ -55,6 +57,32 @@ export function useApiKeys() {
       })
       return data.keys
     },
+  })
+}
+
+/**
+ * Server chat list (DB source of truth). Also rewrites the per-user localStorage
+ * cache so clearing storage or deleting rows in the DB stays in sync.
+ */
+export function useChats() {
+  const token = useToken()
+  const { user } = useAuth()
+  const userId = user?.id
+
+  return useQuery({
+    queryKey: queryKeys.chats(userId),
+    enabled: !!token && !!userId,
+    queryFn: async () => {
+      const data = await api<{ chats: ChatSummary[] }>("/chats", {
+        method: "GET",
+        token: token!,
+      })
+      if (userId) {
+        syncChatListFromServer(userId, data.chats)
+      }
+      return data.chats
+    },
+    staleTime: 30_000,
   })
 }
 
@@ -164,6 +192,7 @@ export function useDeleteChat() {
       }),
     onSuccess: (_data, chatId) => {
       qc.removeQueries({ queryKey: queryKeys.chat(chatId) })
+      void qc.invalidateQueries({ queryKey: queryKeys.chats() })
       void qc.invalidateQueries({ queryKey: queryKeys.credits() })
     },
   })

@@ -135,3 +135,10 @@ export type ChatListItem = {
   title: string
   updatedAt: string
 }
+
+/** Item from GET /chats (DB source of truth for the sidebar). */
+export type ChatSummary = {
+  id: string
+  title: string | null
+  created_at: string
+}

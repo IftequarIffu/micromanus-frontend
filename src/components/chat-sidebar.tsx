@@ -31,26 +31,36 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { readChatList, removeChatListItem } from "@/lib/chat-list"
+import {
+  notifyChatListUpdated,
+  readChatList,
+  removeChatListItem,
+  titleFromContent,
+} from "@/lib/chat-list"
 import { messageForCode } from "@/lib/errors"
 import { ApiError } from "@/lib/api"
 import type { ChatListItem } from "@/lib/types"
 import { useAuth } from "@/providers/auth-provider"
 import { useChatStream } from "@/providers/chat-stream-provider"
-import { useDeleteChat, useMe } from "@/hooks/use-api"
+import { useChats, useDeleteChat, useMe } from "@/hooks/use-api"
 
 export function ChatSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { signOut } = useAuth()
+  const { signOut, user } = useAuth()
+  const userId = user?.id
   const { data: me } = useMe()
+  // DB is source of truth; localStorage is a cache (instant paint + offline).
+  const { data: serverChats } = useChats()
   const { activeChatId, clearThread } = useChatStream()
   const deleteChat = useDeleteChat()
-  const [chats, setChats] = useState<ChatListItem[]>(() => readChatList())
+  const [chats, setChats] = useState<ChatListItem[]>(() =>
+    readChatList(userId)
+  )
   const [pendingDelete, setPendingDelete] = useState<ChatListItem | null>(null)
 
   useEffect(() => {
-    const refresh = () => setChats(readChatList())
+    const refresh = () => setChats(readChatList(userId))
     refresh()
     window.addEventListener("micromanus:chat-list-updated", refresh)
     window.addEventListener("storage", refresh)
@@ -58,16 +68,28 @@ export function ChatSidebar() {
       window.removeEventListener("micromanus:chat-list-updated", refresh)
       window.removeEventListener("storage", refresh)
     }
-  }, [location.pathname])
+  }, [location.pathname, userId])
+
+  // Prefer the latest server payload when present (already synced into localStorage).
+  useEffect(() => {
+    if (!serverChats) return
+    setChats(
+      serverChats.map((c) => ({
+        chatId: c.id,
+        title: titleFromContent(c.title ?? "New chat"),
+        updatedAt: c.created_at,
+      }))
+    )
+  }, [serverChats])
 
   async function confirmDelete() {
-    if (!pendingDelete) return
+    if (!pendingDelete || !userId) return
     const { chatId } = pendingDelete
     try {
       await deleteChat.mutateAsync(chatId)
-      removeChatListItem(chatId)
-      setChats(readChatList())
-      window.dispatchEvent(new Event("micromanus:chat-list-updated"))
+      removeChatListItem(userId, chatId)
+      setChats(readChatList(userId))
+      notifyChatListUpdated()
       setPendingDelete(null)
 
       if (activeChatId === chatId || location.pathname === `/chat/${chatId}`) {
