@@ -6,7 +6,6 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChatSidebar } from "@/components/chat-sidebar"
 import { CreditBadge } from "@/components/credit-badge"
@@ -34,7 +33,6 @@ export function AppShell() {
           <header className="glass-panel absolute inset-x-0 top-0 z-20 grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-border/50 px-4">
             <div className="flex items-center gap-3">
               <SidebarTrigger />
-              <Separator orientation="vertical" className="h-4" />
             </div>
 
             <div className="flex justify-center">

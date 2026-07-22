@@ -86,8 +86,8 @@ export function ChatUsagePanel({ chatId }: ChatUsagePanelProps) {
         <TableHeader>
           <TableRow>
             <TableHead>Model</TableHead>
-            <TableHead className="text-right">Input</TableHead>
-            <TableHead className="text-right">Output</TableHead>
+            <TableHead className="text-right">Input tokens</TableHead>
+            <TableHead className="text-right">Output tokens</TableHead>
             <TableHead className="text-right">Est. cost</TableHead>
           </TableRow>
         </TableHeader>
