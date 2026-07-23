@@ -138,6 +138,8 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
       }
 
       const initialKey = threadKey(chatId ?? activeChatId)
+      // Keep a stable stream id from the first optimistic paint so `/new` can
+      // resolve the pending thread until `chat_created` assigns a real id.
       streamChatIdRef.current = chatId ?? activeChatId
       setStreamingChatId(streamChatIdRef.current)
       setActiveChatId(chatId ?? activeChatId)
@@ -316,7 +318,7 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
               }
               void queryClient.invalidateQueries({ queryKey: queryKeys.credits() })
               void queryClient.invalidateQueries({ queryKey: queryKeys.chats() })
-              // Refresh cache for later visits; ChatPage skips hydrate while
+              // Refresh cache for later visits; ChatWorkspace skips hydrate while
               // this thread already has local messages so the reply won't flicker.
               if (done.chatId) {
                 void queryClient.invalidateQueries({

@@ -7,8 +7,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { AuthProvider } from "@/providers/auth-provider"
 import { ChatStreamProvider } from "@/providers/chat-stream-provider"
 import { LoginPage } from "@/pages/login-page"
-import { NewChatPage } from "@/pages/new-chat-page"
-import { ChatPage } from "@/pages/chat-page"
+import { ChatWorkspace } from "@/pages/chat-workspace"
 import { KeysPage } from "@/pages/keys-page"
 import { CreditsPage } from "@/pages/credits-page"
 
@@ -40,8 +39,11 @@ export function App() {
                 }
               >
                 <Route index element={<Navigate to="/new" replace />} />
-                <Route path="new" element={<NewChatPage />} />
-                <Route path="chat/:chatId" element={<ChatPage />} />
+                {/* Layout stays mounted across /new → /chat/:id on chat_created. */}
+                <Route element={<ChatWorkspace />}>
+                  <Route path="new" />
+                  <Route path="chat/:chatId" />
+                </Route>
                 <Route path="settings/keys" element={<KeysPage />} />
                 <Route path="credits" element={<CreditsPage />} />
               </Route>

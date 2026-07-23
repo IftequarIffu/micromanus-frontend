@@ -9,14 +9,21 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChatSidebar } from "@/components/chat-sidebar"
 import { CreditBadge } from "@/components/credit-badge"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { useChatStream } from "@/providers/chat-stream-provider"
 
 export function AppShell() {
   const chatMatch = useMatch("/chat/:chatId")
+  const { streamingChatId, isStreaming } = useChatStream()
   const [chatTab, setChatTab] = useState("chat")
+
+  // Show chat/usage tabs as soon as a real chat id exists (including the
+  // brief `/new` handoff after `chat_created`, before the URL updates).
+  const chatId = chatMatch?.params.chatId ?? streamingChatId ?? undefined
+  const showChatTabs = Boolean(chatId)
 
   useEffect(() => {
     setChatTab("chat")
-  }, [chatMatch?.params.chatId])
+  }, [chatId])
 
   return (
     <SidebarProvider className="h-svh overflow-hidden">
@@ -33,7 +40,7 @@ export function AppShell() {
             <div />
 
             <div className="flex justify-center">
-              {chatMatch ? (
+              {showChatTabs ? (
                 <TabsList
                   variant="line"
                   className="h-9 gap-4 rounded-none bg-transparent p-0"
@@ -42,7 +49,11 @@ export function AppShell() {
                     <MessageSquareIcon data-icon="inline-start" />
                     Chat
                   </TabsTrigger>
-                  <TabsTrigger value="usage" className="flex-none px-1">
+                  <TabsTrigger
+                    value="usage"
+                    className="flex-none px-1"
+                    disabled={isStreaming && !chatMatch}
+                  >
                     <ChartColumnIcon data-icon="inline-start" />
                     Usage
                   </TabsTrigger>
