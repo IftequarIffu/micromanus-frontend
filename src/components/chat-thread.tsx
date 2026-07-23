@@ -1,4 +1,5 @@
-import { FileTextIcon } from "lucide-react"
+import { CheckIcon, CopyIcon, FileTextIcon } from "lucide-react"
+import { useState } from "react"
 import {
   Conversation,
   ConversationContent,
@@ -7,6 +8,8 @@ import {
 } from "@/components/ai-elements/conversation"
 import {
   Message,
+  MessageAction,
+  MessageActions,
   MessageContent,
   MessageResponse,
 } from "@/components/ai-elements/message"
@@ -115,6 +118,28 @@ function ToolActivity({
   )
 }
 
+function CopyMessageAction({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  return (
+    <MessageAction
+      label={copied ? "Copied" : "Copy"}
+      tooltip={copied ? "Copied" : "Copy"}
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text)
+          setCopied(true)
+          window.setTimeout(() => setCopied(false), 1500)
+        } catch {
+          // Clipboard may be unavailable in insecure contexts.
+        }
+      }}
+    >
+      {copied ? <CheckIcon /> : <CopyIcon />}
+    </MessageAction>
+  )
+}
+
 export function ChatThread({
   messages,
   emptyTitle = "Start a conversation",
@@ -140,7 +165,11 @@ export function ChatThread({
 
           return (
             <Message from={message.role} key={message.id}>
-              <MessageContent>
+              <MessageContent
+                className={
+                  message.role === "assistant" ? "w-full max-w-none" : undefined
+                }
+              >
                 {message.role === "assistant" ? (
                   <>
                     {message.sources && message.sources.length > 0 ? (
@@ -172,13 +201,24 @@ export function ChatThread({
                     ) : null}
 
                     {message.content ? (
-                      <MessageResponse>{message.content}</MessageResponse>
+                      <MessageResponse
+                        className="text-[15px] leading-7"
+                        isAnimating={streaming}
+                      >
+                        {message.content}
+                      </MessageResponse>
                     ) : streaming && !hasRunningTool ? (
                       <StreamingStatus label="Thinking…" />
                     ) : message.status === "failed" ? (
                       <p className="text-destructive text-sm">
                         Response failed.
                       </p>
+                    ) : null}
+
+                    {message.content && message.status === "complete" ? (
+                      <MessageActions className="opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                        <CopyMessageAction text={message.content} />
+                      </MessageActions>
                     ) : null}
                   </>
                 ) : (
