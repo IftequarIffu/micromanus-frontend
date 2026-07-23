@@ -461,10 +461,10 @@ Current catalog (use `id` in message bodies):
 
 | id                           | provider | label             |
 | ---------------------------- | -------- | ----------------- |
-| `gpt-5-mini`                 | openai   | GPT-5 Mini        |
-| `gpt-4.1-mini`               | openai   | GPT-4.1 Mini      |
+| `gpt-5.4-mini`               | openai   | GPT-5.4 Mini      |
+| `gpt-5.4-nano`               | openai   | GPT-5.4 Nano      |
 | `claude-sonnet-4-5-20250929` | claude   | Claude Sonnet 4.5 |
-| `claude-sonnet-4-20250514`   | claude   | Claude Sonnet 4   |
+| `claude-haiku-4-5-20251001`  | claude   | Claude Haiku 4.5  |
 | `gemini-2.5-flash`           | gemini   | Gemini 2.5 Flash  |
 | `gemini-2.5-pro`             | gemini   | Gemini 2.5 Pro    |
 

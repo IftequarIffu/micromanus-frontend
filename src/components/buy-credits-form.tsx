@@ -57,7 +57,7 @@ export function BuyCreditsForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="max-w-md">
+    <form onSubmit={onSubmit}>
       <FieldGroup>
         <Field data-invalid={fieldError ? true : undefined}>
           <FieldLabel htmlFor="credits">Credits to buy</FieldLabel>

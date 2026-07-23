@@ -2,6 +2,14 @@ import { useEffect } from "react"
 import { useSearchParams } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { BuyCreditsForm } from "@/components/buy-credits-form"
 import { CouponForm } from "@/components/coupon-form"
@@ -29,14 +37,15 @@ export function CreditsPage() {
 
   return (
     <div className="scrollbar-chat min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:auto]!">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 p-6">
+      <div className="mx-auto flex w-full max-w-xl flex-col gap-6 p-6">
         <div>
           <h1 className="font-heading text-2xl font-semibold tracking-tight">
             Credits
           </h1>
           <p className="text-muted-foreground text-sm">
             Platform credits meter micromanus access. Your LLM provider is billed
-            separately via your own key.
+            separately via your own key. Add credits by paying with Stripe or by
+            redeeming a coupon — pick either path below.
           </p>
         </div>
 
@@ -66,29 +75,58 @@ export function CreditsPage() {
           </Alert>
         ) : null}
 
-        <div className="flex flex-col gap-2">
-          <p className="text-muted-foreground text-sm">
-            Current balance
-            {isFetching && !isLoading ? " · updating…" : null}
-          </p>
-          {isLoading ? (
-            <Skeleton className="h-10 w-40" />
-          ) : (
-            <p className="text-4xl font-semibold tracking-tight">
-              {(data?.balance ?? 0).toLocaleString()}
-            </p>
-          )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Current balance</CardTitle>
+            <CardDescription>
+              Credits available for chats and tools
+              {isFetching && !isLoading ? " · updating…" : null}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-10 w-40" />
+            ) : (
+              <p className="text-4xl font-semibold tracking-tight">
+                {(data?.balance ?? 0).toLocaleString()}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Pay with Stripe</CardTitle>
+            <CardDescription>
+              Buy credits with a card. $1 per credit, minimum 5 ($5). You’ll be
+              redirected to Stripe Checkout to complete payment.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BuyCreditsForm />
+          </CardContent>
+        </Card>
+
+        <div className="flex items-center gap-3">
+          <Separator className="flex-1" />
+          <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+            or
+          </span>
+          <Separator className="flex-1" />
         </div>
 
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-medium">Buy credits</h2>
-          <BuyCreditsForm />
-        </section>
-
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-medium">Redeem a coupon</h2>
-          <CouponForm />
-        </section>
+        <Card>
+          <CardHeader>
+            <CardTitle>Redeem a coupon</CardTitle>
+            <CardDescription>
+              Have a promo code? Redeem it here instead of paying — no card
+              required.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CouponForm />
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

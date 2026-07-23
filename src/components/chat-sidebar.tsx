@@ -21,7 +21,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { BrandWordmark } from "@/components/brand-wordmark"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -114,12 +116,16 @@ export function ChatSidebar() {
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link
-                to="/"
-                className="inline-flex w-fit cursor-pointer items-center px-2 py-2 font-heading text-xl font-semibold tracking-tight outline-hidden group-data-[collapsible=icon]:hidden"
-              >
-                micromanus
-              </Link>
+              <div className="flex w-full items-center gap-1 group-data-[collapsible=icon]:justify-center">
+                <Link
+                  to="/"
+                  aria-label="micromanus"
+                  className="inline-flex min-w-0 cursor-pointer items-center px-2 py-2 outline-hidden group-data-[collapsible=icon]:hidden"
+                >
+                  <BrandWordmark size="md" />
+                </Link>
+                <SidebarTrigger className="ml-auto group-data-[collapsible=icon]:ml-0" />
+              </div>
             </SidebarMenuItem>
             <SidebarMenuItem className="mt-6">
               <SidebarMenuButton
@@ -134,7 +140,7 @@ export function ChatSidebar() {
         </SidebarHeader>
 
         <SidebarContent>
-          <SidebarGroup>
+          <SidebarGroup className="group-data-[collapsible=icon]:hidden">
             <SidebarGroupLabel>Chats</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>

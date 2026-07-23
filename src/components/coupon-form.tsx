@@ -53,7 +53,7 @@ export function CouponForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="max-w-md">
+    <form onSubmit={onSubmit}>
       <FieldGroup>
         <Field data-invalid={fieldError ? true : undefined}>
           <FieldLabel htmlFor="coupon">Coupon code</FieldLabel>

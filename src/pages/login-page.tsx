@@ -1,5 +1,6 @@
 import { Navigate } from "react-router"
 import { toast } from "sonner"
+import { BrandWordmark } from "@/components/brand-wordmark"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/providers/auth-provider"
@@ -55,9 +56,9 @@ export function LoginPage() {
         <ThemeToggle />
       </div>
       <div className="relative z-10 flex w-full max-w-sm flex-col gap-8">
-        <div className="flex flex-col gap-2 text-center">
-          <h1 className="font-heading text-4xl font-semibold tracking-tight">
-            micromanus
+        <div className="flex flex-col items-center gap-3 text-center">
+          <h1>
+            <BrandWordmark size="lg" />
           </h1>
           <p className="text-muted-foreground text-sm">
             Multi-model chat with your own keys, platform credits, and live
