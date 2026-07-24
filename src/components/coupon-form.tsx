@@ -64,7 +64,7 @@ export function CouponForm() {
               setCode(e.target.value)
               if (fieldError) setFieldError(null)
             }}
-            placeholder="WELCOME100"
+            placeholder="SID_DRDROID"
             autoComplete="off"
             aria-invalid={fieldError ? true : undefined}
             disabled={redeem.isPending}
