@@ -744,3 +744,47 @@ sequenceDiagram
 9. With balance `0`, send fails with credits CTA.
 
 Watch the backend terminal for streaming / tool / billing logs while testing.
+
+
+
+---
+
+
+
+# 17. CSS: glass / `backdrop-filter` (do not regress)
+
+Header and sticky `ChatComposer` use `.glass-panel` in `src/index.css` for frosted glass.
+
+**Production pitfall:** Vite’s LightningCSS minify treats `backdrop-filter` and `-webkit-backdrop-filter` as **one** property. If both appear in the **same** rule, the build keeps only `-webkit-backdrop-filter`. Dev CSS keeps both, so glass looks fine locally but production (especially Firefox) shows a translucent panel with **no blur** — chat text under the composer stays sharp.
+
+**Rule:** Never put both declarations in one rule (including inside a single `@utility`). Use **separate** `@supports` blocks so both survive minify. Prefer denser fallback opacity so text stays obscured if blur fails.
+
+```css
+/* ✅ — both survive production minify */
+.glass-panel {
+  background-color: color-mix(in oklch, var(--background) 86%, transparent);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .glass-panel {
+    background-color: color-mix(in oklch, var(--background) 58%, transparent);
+    backdrop-filter: blur(18px) saturate(1.45);
+  }
+}
+
+@supports (-webkit-backdrop-filter: blur(1px)) {
+  .glass-panel {
+    -webkit-backdrop-filter: blur(18px) saturate(1.45);
+  }
+}
+```
+
+```css
+/* ❌ — LightningCSS drops unprefixed; prod glass loses blur */
+.glass-panel {
+  backdrop-filter: blur(18px) saturate(1.45);
+  -webkit-backdrop-filter: blur(18px) saturate(1.45);
+}
+```
+
+After changing glass CSS, verify the built `dist/assets/*.css` still contains **both** `backdrop-filter:` and `-webkit-backdrop-filter:` on `.glass-panel`.

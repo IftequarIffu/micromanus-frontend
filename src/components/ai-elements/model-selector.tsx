@@ -47,6 +47,7 @@ export const ModelSelectorContent = ({
       className
     )}
     {...props}
+    showCloseButton={false}
   >
     <DialogTitle className="sr-only">{title}</DialogTitle>
     <Command className="**:data-[slot=command-input-wrapper]:h-auto">
