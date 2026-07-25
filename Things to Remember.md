@@ -355,18 +355,19 @@ Reviewers open the GitHub repo after visual and interaction tests. They judge wh
 | `lib/api.ts` | JSON `api()`, SSE parse, stream POST |
 | `lib/chat-stream.ts` | SSE consume + pure thread message updaters |
 | `lib/chat-messages.ts` | `ChatDetail` → `UiMessage[]` mapping |
-| `lib/chat-list.ts` | Per-user localStorage chat index (write notifies listeners) |
-| `hooks/use-api.ts` | React Query for JSON endpoints |
-| `providers/chat-stream-provider.tsx` | React state, navigation, cache invalidation, wiring to `consumeChatSse` |
+| `lib/chat-list.ts` | Per-user localStorage paint cache for the chat list |
+| `lib/chat-thread-store.ts` | External store for SSE / optimistic message threads |
+| `hooks/use-api.ts` | React Query for JSON endpoints (including chat list) |
+| `providers/chat-stream-provider.tsx` | Stream status/actions + wiring to `consumeChatSse` |
 | `pages/*` | Route layout, compose forms/panels |
 | `components/*` | UI (presentational thread, forms, shell) |
 
-SSE stays **outside** React Query and **above** the `/new` → `/chat/:id` outlet (see §1.6 and `AGENTS.md`).
+SSE stays **outside** React Query and **above** the `/new` → `/chat/:id` outlet (see §1.6, §5, and `AGENTS.md`).
 
 ### 4.4 How to build it (agents)
 
 1. **Prefer extract over invent** — when a provider/page grows, pull pure helpers into `lib/` (stream event application, detail→UI mapping). Keep the provider as wiring, not a second API client.
-2. **One owner for chat-list cache** — `writeChatList` / sync/upsert/remove notify via `micromanus:chat-list-updated`. Sidebar reads localStorage; `useChats` rewrites from the DB. Don’t remap the server list in three places.
+2. **One owner for chat-list cache** — React Query `['chats', userId]` is the UI source of truth; localStorage is `placeholderData` + persistence rewritten by `useChats`. Optimistic upsert/remove must `setQueryData` (and write localStorage). Don’t keep a parallel `useState` list in the sidebar.
 3. **Pages compose; forms don’t own the page shell** — titles and scroll wrappers live in `pages/` (`KeysPage`, `CreditsPage`); forms stay cards/fields only.
 4. **Presentational where it pays off** — `ChatThread` takes `messages` props. Hook-bound forms (`ApiKeyForm`, composer) are fine at this size; don’t prop-drill the whole auth/query tree “for purity.”
 5. **Do not add** a full `services/` layer, one file per hook, or repository/DTO stacks until `use-api.ts` or a domain module is clearly too large (~300+ and hard to navigate).
@@ -383,7 +384,63 @@ When adding features or refactoring:
 4. Reuse pure mappers/updaters (`chatDetailToUiMessages`, stream helpers) instead of copying `useEffect` blobs.
 5. Avoid premature abstraction: the simplest clear structure wins over “enterprise” layering.
 6. Leave vendored UI registries alone; judge structure on app-owned code.
-7. Preserve SSE-above-route and React Query-for-JSON boundaries from `AGENTS.md`.
+7. Preserve SSE-above-route and React Query-for-JSON boundaries from `AGENTS.md` and §5.
+
+---
+
+## 5. State management boundaries (client vs server)
+
+Reviewers check whether you know what belongs in a **server cache** (TanStack Query) versus **client/UI state**. Dumping fetchable data into Redux/Zustand (or a homemade global store) is a common fail. So is over-fetching and broadcasting high-frequency updates to the whole tree.
+
+### 5.1 What they check
+
+- **Client versus server state** — session/UI/stream vs data that comes from the API.
+- **No duplicate server caches** — avoid global stores (Redux, Zustand, or parallel `useState` + localStorage) for data React Query already owns.
+- **Fetch discipline** — shared query keys, sensible `staleTime`, invalidate/set after mutations; no redundant independent fetches of the same resource.
+- **Re-render discipline** — high-frequency client updates (SSE tokens) must not re-render shell/sidebar/unrelated consumers.
+
+### 5.2 How to test (self-review)
+
+1. Search the repo for `zustand`, `redux`, `create` from global store libs — server data should not live there.
+2. For each React Query key (`me`, `models`, `api-keys`, `chats`, `credits`, `chat`), confirm the UI reads **`data` from the hook** (or `setQueryData` / invalidate), not a second mirror store.
+3. Chat list: sidebar should render `useChats().data`; localStorage only as paint cache (`placeholderData`), rewritten on fetch.
+4. Chat messages: confirm SSE/optimistic threads stay **outside** React Query (required for `/new` → `/chat/:id` without aborting the stream), but status/actions are separated from the message store so tokens don’t thrash the shell.
+5. During a streaming reply, React DevTools / why-did-you-render: AppShell, sidebar, and credit badge should **not** re-render on every token — only the thread (and anything that intentionally subscribes to messages).
+6. Spot over-fetching: opening `/new` should not spawn duplicate `GET /models` / `GET /credits` from unrelated trees beyond normal Query sharing; window focus should not hammer APIs (`refetchOnWindowFocus` defaults in `App.tsx`).
+
+**Pass:** JSON via React Query; auth + SSE as client state; localStorage only as cache/placeholder; stream updates scoped.  
+**Fail:** Redux/Zustand (or equivalent) holding `/me`, keys, credits, or chat list; sidebar `useState` mirroring the server list; context that re-renders the whole app on every SSE token.
+
+### 5.3 Ownership map (this codebase)
+
+| Data | Owner | Notes |
+| --- | --- | --- |
+| `me`, models, API keys, credits, chat detail | React Query (`hooks/use-api.ts`) | Invalidate / `setQueryData` after mutations |
+| Chat list | React Query `['chats', userId]` | localStorage = `placeholderData` + persistence via `lib/chat-list.ts` |
+| Supabase session / token | `AuthProvider` | Client session, not a server-entity cache |
+| SSE stream status, send/stop | `ChatStreamProvider` context | `isStreaming`, `streamingChatId`, actions |
+| Optimistic / streaming messages | `lib/chat-thread-store.ts` + `useChatMessages` | `useSyncExternalStore`; hydrate from `GET /chats/:id` into the store |
+| Selected model, theme | `localStorage` + local component state | UI prefs, not server records |
+
+### 5.4 How to build it (agents)
+
+1. **Default new server reads to React Query** — add a hook in `use-api.ts` with a `queryKeys` entry; do not invent a context/store for that JSON.
+2. **Mutations update the cache** — `invalidateQueries` and/or optimistic `setQueryData` + rollback; keep localStorage chat-list writes in sync when you touch the list.
+3. **Keep SSE out of React Query** — hold the in-flight `fetch` and thread above the route outlet; merge `done` into UI, then invalidate credits/chats/chat detail as today.
+4. **Split high-frequency state** — message tokens in an external store (or a narrow subscription); put rarely changing flags/actions in context. Never put `threads` in the same context value that AppShell/sidebar subscribe to.
+5. **Do not add Redux/Zustand** for micromanus server data. A tiny external store for SSE threads is fine; a second global cache for `/credits` is not.
+6. Prefer Query defaults already set in `App.tsx` (`staleTime`, `refetchOnWindowFocus: false`) over ad-hoc refetch loops.
+
+### 5.5 Agent implementation rules (copy-friendly)
+
+When adding data or chat behavior:
+
+1. If it comes from a JSON endpoint → React Query. If it’s session, UI chrome, or an in-flight SSE thread → client state.
+2. Never mirror React Query results into Redux/Zustand/`useState` as a second source of truth.
+3. Chat list UI reads the query; localStorage is paint cache only.
+4. SSE message updates must not re-render the authenticated shell/sidebar on every token.
+5. Share query keys; invalidate narrowly after success; avoid duplicate fetches of the same resource.
+6. Do not put provider API keys, Stripe, or LLM calls in the browser — boundaries in `AGENTS.md` still apply.
 
 ---
 
