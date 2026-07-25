@@ -187,12 +187,12 @@ export function ChatThread({
 
                     {message.pdf ? (
                       <a
-                        className="mb-3 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+                        className="mb-3 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium transition-colors outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                         href={message.pdf.url}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        <FileTextIcon className="size-4 shrink-0" />
+                        <FileTextIcon className="size-4 shrink-0" aria-hidden />
                         View PDF
                         <span className="max-w-[14rem] truncate text-muted-foreground font-normal">
                           {message.pdf.filename}

@@ -6,6 +6,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark light" />
     <title>micromanus</title>
+    <style>
+      /* Visible before JS/CSS bundles load (hard reload / OAuth return). */
+      #boot-splash {
+        box-sizing: border-box;
+        margin: 0;
+        min-height: 100svh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.25rem;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        background: #fff;
+        color: #0a0f14;
+      }
+      html.dark #boot-splash {
+        background: #0a0f14;
+        color: #f4f7f8;
+      }
+      #boot-splash__mark {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+      }
+      #boot-splash__spinner {
+        width: 1.5rem;
+        height: 1.5rem;
+        border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: boot-spin 0.7s linear infinite;
+      }
+      @keyframes boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
     <script>
       ;(() => {
         const key = "theme"
@@ -26,7 +65,12 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot-splash" role="status" aria-label="Loading">
+        <p id="boot-splash__mark">micromanus</p>
+        <div id="boot-splash__spinner" aria-hidden="true"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

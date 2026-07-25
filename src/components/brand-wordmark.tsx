@@ -23,10 +23,7 @@ export function BrandWordmark({
   size = "sm",
 }: React.ComponentProps<"span"> & VariantProps<typeof brandWordmarkVariants>) {
   return (
-    <span
-      aria-label="micromanus"
-      className={cn(brandWordmarkVariants({ size }), className)}
-    >
+    <span className={cn(brandWordmarkVariants({ size }), className)}>
       <span className="font-normal text-muted-foreground">micro</span>
       <span className="font-semibold text-primary">manus</span>
     </span>

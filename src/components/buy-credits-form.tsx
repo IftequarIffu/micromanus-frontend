@@ -73,12 +73,15 @@ export function BuyCreditsForm() {
               if (fieldError) setFieldError(null)
             }}
             aria-invalid={fieldError ? true : undefined}
+            aria-describedby={
+              fieldError ? "credits-error" : "credits-description"
+            }
             disabled={checkout.isPending}
           />
           {fieldError ? (
-            <FieldError>{fieldError}</FieldError>
+            <FieldError id="credits-error">{fieldError}</FieldError>
           ) : (
-            <FieldDescription>
+            <FieldDescription id="credits-description">
               $1 per credit. Minimum {MIN_CHECKOUT_CREDITS} credits ($
               {MIN_CHECKOUT_CREDITS}).
               {totalDollars !== null

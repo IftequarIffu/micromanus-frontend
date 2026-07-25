@@ -1,15 +1,29 @@
+import { lazy, Suspense } from "react"
 import { BrowserRouter, Navigate, Route, Routes } from "react-router"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { AppShell } from "@/components/app-shell"
+import { Spinner } from "@/components/ui/spinner"
 import { ProtectedRoute } from "@/components/protected-route"
 import { AuthProvider } from "@/providers/auth-provider"
-import { ChatStreamProvider } from "@/providers/chat-stream-provider"
 import { LoginPage } from "@/pages/login-page"
-import { ChatWorkspace } from "@/pages/chat-workspace"
-import { KeysPage } from "@/pages/keys-page"
-import { CreditsPage } from "@/pages/credits-page"
+
+const AuthenticatedLayout = lazy(() =>
+  import("@/pages/authenticated-layout").then((m) => ({
+    default: m.AuthenticatedLayout,
+  }))
+)
+const ChatWorkspace = lazy(() =>
+  import("@/pages/chat-workspace").then((m) => ({
+    default: m.ChatWorkspace,
+  }))
+)
+const KeysPage = lazy(() =>
+  import("@/pages/keys-page").then((m) => ({ default: m.KeysPage }))
+)
+const CreditsPage = lazy(() =>
+  import("@/pages/credits-page").then((m) => ({ default: m.CreditsPage }))
+)
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,6 +33,14 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+function FullPageFallback() {
+  return (
+    <div className="flex min-h-svh items-center justify-center">
+      <Spinner className="size-6" />
+    </div>
+  )
+}
 
 export function App() {
   return (
@@ -32,9 +54,9 @@ export function App() {
                 path="/"
                 element={
                   <ProtectedRoute>
-                    <ChatStreamProvider>
-                      <AppShell />
-                    </ChatStreamProvider>
+                    <Suspense fallback={<FullPageFallback />}>
+                      <AuthenticatedLayout />
+                    </Suspense>
                   </ProtectedRoute>
                 }
               >

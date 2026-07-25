@@ -48,6 +48,9 @@ export function LoginPage() {
 
   return (
     <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6">
+      <a href="#login-main" className="skip-link">
+        Skip to main content
+      </a>
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_oklch(0.95_0.02_250),_transparent_55%),radial-gradient(ellipse_at_bottom,_oklch(0.94_0.03_80),_transparent_50%)] dark:bg-[radial-gradient(ellipse_at_top,_oklch(0.28_0.04_250),_transparent_55%),radial-gradient(ellipse_at_bottom,_oklch(0.22_0.03_80),_transparent_50%)]"
@@ -55,7 +58,11 @@ export function LoginPage() {
       <div className="absolute top-4 right-4 z-10">
         <ThemeToggle />
       </div>
-      <div className="relative z-10 flex w-full max-w-sm flex-col gap-8">
+      <main
+        id="login-main"
+        tabIndex={-1}
+        className="relative z-10 flex w-full max-w-sm flex-col gap-8 outline-none"
+      >
         <div className="flex flex-col items-center gap-3 text-center">
           <h1>
             <BrandWordmark size="lg" />
@@ -92,7 +99,7 @@ export function LoginPage() {
             Continue with GitHub
           </Button>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

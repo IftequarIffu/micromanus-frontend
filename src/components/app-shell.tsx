@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { Outlet, useMatch } from "react-router"
 import { ChartColumnIcon, MessageSquareIcon } from "lucide-react"
 import {
@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChatSidebar } from "@/components/chat-sidebar"
 import { CreditBadge } from "@/components/credit-badge"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Spinner } from "@/components/ui/spinner"
 import { useChatStream } from "@/providers/chat-stream-provider"
 
 export function AppShell() {
@@ -27,8 +28,15 @@ export function AppShell() {
 
   return (
     <SidebarProvider className="h-svh overflow-hidden">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <ChatSidebar />
-      <SidebarInset className="relative min-h-0 overflow-hidden">
+      <SidebarInset
+        id="main-content"
+        className="relative min-h-0 overflow-hidden"
+        tabIndex={-1}
+      >
         <Tabs
           value={chatTab}
           onValueChange={(value) => {
@@ -44,6 +52,7 @@ export function AppShell() {
                 <TabsList
                   variant="line"
                   className="h-9 gap-4 rounded-none bg-transparent p-0"
+                  aria-label="Chat views"
                 >
                   <TabsTrigger value="chat" className="flex-none px-1">
                     <MessageSquareIcon data-icon="inline-start" />
@@ -68,7 +77,15 @@ export function AppShell() {
           </header>
 
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-14">
-            <Outlet />
+            <Suspense
+              fallback={
+                <div className="flex flex-1 items-center justify-center">
+                  <Spinner className="size-6" />
+                </div>
+              }
+            >
+              <Outlet />
+            </Suspense>
           </div>
         </Tabs>
       </SidebarInset>

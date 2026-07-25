@@ -80,8 +80,10 @@
   --card-foreground: oklch(0.987 0.002 197.1);
   --popover: oklch(0.218 0.008 223.9);
   --popover-foreground: oklch(0.987 0.002 197.1);
-  --primary: oklch(0.459 0.187 3.815);
-  --primary-foreground: oklch(0.971 0.014 343.198);
+  /* Brighter primary so text-primary (brand, links) meets WCAG AA on dark bg;
+     dark foreground keeps solid primary buttons readable. */
+  --primary: oklch(0.72 0.19 3.815);
+  --primary-foreground: oklch(0.18 0.02 343);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.275 0.011 216.9);
@@ -202,6 +204,15 @@
   summary {
     @apply cursor-pointer;
   }
+}
+
+/* Keyboard skip link — visually hidden until focused */
+.skip-link {
+  @apply sr-only;
+}
+
+.skip-link:focus {
+  @apply not-sr-only fixed top-3 left-3 z-[100] rounded-xl bg-background px-4 py-2 text-sm font-medium text-foreground shadow-lg ring-2 ring-ring;
 }
 
 /* Hide native scrollbars (sidebar, command, etc.) */

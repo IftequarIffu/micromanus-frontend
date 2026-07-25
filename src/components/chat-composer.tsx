@@ -101,7 +101,10 @@ export function ChatComposer({ chatId, sticky = false }: ChatComposerProps) {
           <AlertTitle>API key required</AlertTitle>
           <AlertDescription>
             Add a {selected.provider} key in{" "}
-            <Link className="underline" to="/settings/keys">
+            <Link
+              className="rounded-sm underline outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              to="/settings/keys"
+            >
               Settings → API keys
             </Link>{" "}
             before chatting with {selected.label}.
@@ -114,7 +117,10 @@ export function ChatComposer({ chatId, sticky = false }: ChatComposerProps) {
           <AlertTitle>Out of credits</AlertTitle>
           <AlertDescription>
             Buy a package or redeem a coupon on the{" "}
-            <Link className="underline" to="/credits">
+            <Link
+              className="rounded-sm underline outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              to="/credits"
+            >
               credits page
             </Link>
             .
@@ -125,6 +131,7 @@ export function ChatComposer({ chatId, sticky = false }: ChatComposerProps) {
       <PromptInput onSubmit={onSubmit}>
         <PromptInputBody>
           <PromptInputTextarea
+            aria-label="Message"
             placeholder="Ask anything…"
             disabled={isStreaming || modelsLoading}
           />
@@ -134,7 +141,16 @@ export function ChatComposer({ chatId, sticky = false }: ChatComposerProps) {
             <ModelSelector open={selectorOpen} onOpenChange={setSelectorOpen}>
               <ModelSelectorTrigger
                 render={
-                  <Button variant="outline" size="sm" type="button" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    aria-label={
+                      selected
+                        ? `Model: ${selected.label}. Change model`
+                        : "Select model"
+                    }
+                  />
                 }
               >
                 <span className="max-w-40 truncate">
@@ -143,7 +159,10 @@ export function ChatComposer({ chatId, sticky = false }: ChatComposerProps) {
                 <ChevronsUpDownIcon data-icon="inline-end" />
               </ModelSelectorTrigger>
               <ModelSelectorContent title="Select a model">
-                <ModelSelectorInput placeholder="Search models…" />
+                <ModelSelectorInput
+                  placeholder="Search models…"
+                  aria-label="Search models"
+                />
                 <ModelSelectorList>
                   <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
                   {[...grouped.entries()].map(([provider, list]) => (

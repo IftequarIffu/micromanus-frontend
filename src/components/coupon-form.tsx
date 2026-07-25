@@ -67,12 +67,15 @@ export function CouponForm() {
             placeholder="SID_DRDROID"
             autoComplete="off"
             aria-invalid={fieldError ? true : undefined}
+            aria-describedby={
+              fieldError ? "coupon-error" : "coupon-description"
+            }
             disabled={redeem.isPending}
           />
           {fieldError ? (
-            <FieldError>{fieldError}</FieldError>
+            <FieldError id="coupon-error">{fieldError}</FieldError>
           ) : (
-            <FieldDescription>
+            <FieldDescription id="coupon-description">
               Codes are trimmed and uppercased on the server.
             </FieldDescription>
           )}

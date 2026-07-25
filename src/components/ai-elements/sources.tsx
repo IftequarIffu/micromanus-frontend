@@ -29,7 +29,10 @@ export const SourcesTrigger = ({
   ...props
 }: SourcesTriggerProps) => (
   <CollapsibleTrigger
-    className={cn("flex items-center gap-2 text-muted-foreground hover:text-foreground", className)}
+    className={cn(
+      "flex items-center gap-2 rounded-md text-muted-foreground outline-none hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+      className
+    )}
     {...props}
   >
     {children ?? (
@@ -61,7 +64,7 @@ export type SourceProps = ComponentProps<"a">;
 
 export const Source = ({ href, title, children, ...props }: SourceProps) => (
   <a
-    className="flex items-center gap-2 text-foreground underline-offset-2 hover:underline"
+    className="flex items-center gap-2 rounded-sm text-foreground underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
     href={href}
     rel="noreferrer"
     target="_blank"

@@ -90,10 +90,16 @@ export const MessageAction = ({
   size = "icon-sm",
   ...props
 }: MessageActionProps) => {
+  const accessibleName = label || tooltip;
   const button = (
-    <Button size={size} type="button" variant={variant} {...props}>
+    <Button
+      size={size}
+      type="button"
+      variant={variant}
+      aria-label={accessibleName}
+      {...props}
+    >
       {children}
-      <span className="sr-only">{label || tooltip}</span>
     </Button>
   );
 
@@ -101,7 +107,7 @@ export const MessageAction = ({
     return (
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger>{button}</TooltipTrigger>
+          <TooltipTrigger render={button} />
           <TooltipContent>
             <p>{tooltip}</p>
           </TooltipContent>

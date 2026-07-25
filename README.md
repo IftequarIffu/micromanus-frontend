@@ -16,6 +16,22 @@ bun run dev
 
 Run the backend on port **4000** (`micromanus-backend`).
 
+### Supabase Auth redirect URLs (required for local OAuth)
+
+OAuth `redirectTo` is always `${window.location.origin}/new`. If that URL is **not** on the project allow list, Supabase falls back to **Site URL** (production), which looks like “login sent me to Vercel.”
+
+In [URL Configuration](https://supabase.com/dashboard/project/egprtjyxbyruhlhzvrgz/auth/url-configuration) keep Site URL as production, and add **Redirect URLs**:
+
+```
+http://localhost:5173/**
+http://localhost:4173/**
+https://micromanus-frontend.vercel.app/**
+```
+
+- `5173` — `bun run dev`
+- `4173` — `bun run preview`
+- Vercel — production (and optionally `https://*-.vercel.app/**` for preview deploys)
+
 ## Scripts
 
 | Command | Purpose |
@@ -42,7 +58,7 @@ Deploy this repo as its **own** Vercel project (separate from the backend).
 
 4. Deploy the **backend** first (or re-deploy the frontend after you know the API URL).
 5. On the backend, set `CORS_ORIGINS` to this frontend’s origin and point `CHECKOUT_*_URL` at this host.
-6. Supabase Dashboard → **Authentication** → URL configuration: add `https://<frontend>.vercel.app` to Site URL / Redirect URLs.
+6. Supabase Dashboard → **Authentication** → URL configuration: set **Site URL** to `https://<frontend>.vercel.app`, and keep local Redirect URLs (`http://localhost:5173/**`, `http://localhost:4173/**`) plus `https://<frontend>.vercel.app/**` (see Local setup above).
 
 ### Stripe Test checkout on production
 

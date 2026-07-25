@@ -93,7 +93,7 @@ export function ApiKeyForm() {
           <form onSubmit={onSubmit}>
             <FieldGroup>
               <Field>
-                <FieldLabel>Provider</FieldLabel>
+                <FieldLabel htmlFor="api-key-provider">Provider</FieldLabel>
                 <Select
                   items={providerItems}
                   value={provider}
@@ -101,7 +101,7 @@ export function ApiKeyForm() {
                     setProvider((value as Provider | null) ?? null)
                   }
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger id="api-key-provider" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -124,8 +124,9 @@ export function ApiKeyForm() {
                   placeholder="sk-…"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
+                  aria-describedby="api-key-description"
                 />
-                <FieldDescription>
+                <FieldDescription id="api-key-description">
                   Paste the full key once. It won’t be shown again.
                 </FieldDescription>
               </Field>
@@ -163,6 +164,7 @@ export function ApiKeyForm() {
                     variant="outline"
                     size="sm"
                     disabled={remove.isPending}
+                    aria-label={`Delete ${key.provider} API key`}
                     onClick={async () => {
                       try {
                         await remove.mutateAsync(key.provider)

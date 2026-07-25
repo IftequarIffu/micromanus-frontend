@@ -112,15 +112,19 @@ export function ChatSidebar() {
 
   return (
     <>
-      <Sidebar collapsible="icon">
+      <Sidebar
+        collapsible="icon"
+        role="navigation"
+        aria-label="Main navigation"
+      >
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
               <div className="flex w-full items-center gap-1 group-data-[collapsible=icon]:justify-center">
                 <Link
                   to="/"
-                  aria-label="micromanus"
-                  className="inline-flex min-w-0 cursor-pointer items-center px-2 py-2 outline-hidden group-data-[collapsible=icon]:hidden"
+                  aria-label="micromanus home"
+                  className="inline-flex min-w-0 cursor-pointer items-center rounded-lg px-2 py-2 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 group-data-[collapsible=icon]:hidden"
                 >
                   <BrandWordmark size="md" />
                 </Link>
@@ -205,6 +209,9 @@ export function ChatSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 tooltip="Sign out"
+                aria-label={
+                  me?.email ? `Sign out (${me.email})` : "Sign out"
+                }
                 onClick={() => {
                   void signOut().then(() => navigate("/login"))
                 }}
