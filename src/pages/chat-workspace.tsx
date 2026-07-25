@@ -8,8 +8,8 @@ import { ChatThreadSkeleton } from "@/components/chat-thread-skeleton"
 import { ChatUsagePanel } from "@/components/chat-usage-panel"
 import { TabsContent } from "@/components/ui/tabs"
 import { ApiError } from "@/lib/api"
+import { chatDetailToUiMessages } from "@/lib/chat-messages"
 import {
-  notifyChatListUpdated,
   removeChatListItem,
   titleFromChat,
   upsertChatListItem,
@@ -18,7 +18,6 @@ import { queryKeys } from "@/lib/query-keys"
 import { useChat } from "@/hooks/use-api"
 import { useAuth } from "@/providers/auth-provider"
 import { useChatStream } from "@/providers/chat-stream-provider"
-import type { UiMessage } from "@/lib/types"
 
 /**
  * Shared layout for `/new` and `/chat/:chatId` so navigating on `chat_created`
@@ -59,22 +58,6 @@ export function ChatWorkspace() {
     if (isStreaming && streamingChatId === routeChatId) return
     if (messages.length > 0) return
 
-    const byMessage = new Map<string, { title: string; url: string }[]>()
-    for (const s of data.sources) {
-      const list = byMessage.get(s.message_id) ?? []
-      list.push({ title: s.source_link, url: s.source_link })
-      byMessage.set(s.message_id, list)
-    }
-
-    const next: UiMessage[] = data.messages.map((m) => ({
-      id: m.id,
-      role: m.role,
-      content: m.content,
-      status: "complete",
-      sources: byMessage.get(m.id),
-      ...(m.pdf ? { pdf: m.pdf } : {}),
-    }))
-
     if (user?.id) {
       upsertChatListItem(user.id, {
         chatId: routeChatId,
@@ -84,10 +67,9 @@ export function ChatWorkspace() {
         }),
         updatedAt: data.created_at,
       })
-      notifyChatListUpdated()
     }
 
-    hydrateChat(routeChatId, next)
+    hydrateChat(routeChatId, chatDetailToUiMessages(data))
   }, [
     routeChatId,
     data,
@@ -107,7 +89,6 @@ export function ChatWorkspace() {
       return
     }
     removeChatListItem(user.id, routeChatId)
-    notifyChatListUpdated()
     void queryClient.invalidateQueries({ queryKey: queryKeys.chats() })
     clearThread(routeChatId)
   }, [routeChatId, user?.id, isError, error, clearThread, queryClient])

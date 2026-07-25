@@ -68,129 +68,115 @@ export function ApiKeyForm() {
   }
 
   return (
-    <div className="scrollbar-chat min-h-0 flex-1 [scrollbar-gutter:auto]! overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-xl flex-col gap-6 p-4 sm:p-6">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">
-            API keys
-          </h1>
-          <p className="mt-1 text-sm text-pretty text-muted-foreground">
-            Bring your own OpenAI, Claude, or Gemini key. Only the last four
-            characters are stored for display.
-          </p>
-        </div>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Save a key</CardTitle>
+          <CardDescription>
+            Keys are encrypted on the server. They never leave your BYOK vault
+            in plaintext.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={onSubmit}>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="api-key-provider">Provider</FieldLabel>
+                <Select
+                  items={providerItems}
+                  value={provider}
+                  onValueChange={(value) =>
+                    setProvider((value as Provider | null) ?? null)
+                  }
+                >
+                  <SelectTrigger id="api-key-provider" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {PROVIDERS.map((p) => (
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="api-key">API key</FieldLabel>
+                <Input
+                  id="api-key"
+                  type="password"
+                  autoComplete="off"
+                  placeholder="sk-…"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  aria-describedby="api-key-description"
+                />
+                <FieldDescription id="api-key-description">
+                  Paste the full key once. It won’t be shown again.
+                </FieldDescription>
+              </Field>
+              <Button type="submit" disabled={save.isPending}>
+                {save.isPending ? <Spinner data-icon="inline-start" /> : null}
+                Save key
+              </Button>
+            </FieldGroup>
+          </form>
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Save a key</CardTitle>
-            <CardDescription>
-              Keys are encrypted on the server. They never leave your BYOK vault
-              in plaintext.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={onSubmit}>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="api-key-provider">Provider</FieldLabel>
-                  <Select
-                    items={providerItems}
-                    value={provider}
-                    onValueChange={(value) =>
-                      setProvider((value as Provider | null) ?? null)
-                    }
+      <Card>
+        <CardHeader>
+          <CardTitle>Saved keys</CardTitle>
+          <CardDescription>Masked keys for each provider.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Spinner />
+          ) : !keys?.length ? (
+            <p className="text-sm text-muted-foreground">No keys saved yet.</p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {keys.map((key) => (
+                <li
+                  key={key.provider}
+                  className="flex min-w-0 items-center justify-between gap-3"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Badge variant="secondary" className="shrink-0">
+                      {key.provider}
+                    </Badge>
+                    <span className="truncate font-mono text-sm">
+                      ••••{key.last_four}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    disabled={remove.isPending}
+                    aria-label={`Delete ${key.provider} API key`}
+                    onClick={async () => {
+                      try {
+                        await remove.mutateAsync(key.provider)
+                        toast.success(`Removed ${key.provider} key.`)
+                      } catch (err) {
+                        const code =
+                          err instanceof ApiError ? err.code : "unknown"
+                        toast.error(messageForCode(code))
+                      }
+                    }}
                   >
-                    <SelectTrigger id="api-key-provider" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {PROVIDERS.map((p) => (
-                          <SelectItem key={p.value} value={p.value}>
-                            {p.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="api-key">API key</FieldLabel>
-                  <Input
-                    id="api-key"
-                    type="password"
-                    autoComplete="off"
-                    placeholder="sk-…"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    aria-describedby="api-key-description"
-                  />
-                  <FieldDescription id="api-key-description">
-                    Paste the full key once. It won’t be shown again.
-                  </FieldDescription>
-                </Field>
-                <Button type="submit" disabled={save.isPending}>
-                  {save.isPending ? <Spinner data-icon="inline-start" /> : null}
-                  Save key
-                </Button>
-              </FieldGroup>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Saved keys</CardTitle>
-            <CardDescription>Masked keys for each provider.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Spinner />
-            ) : !keys?.length ? (
-              <p className="text-sm text-muted-foreground">
-                No keys saved yet.
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {keys.map((key) => (
-                  <li
-                    key={key.provider}
-                    className="flex min-w-0 items-center justify-between gap-3"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <Badge variant="secondary" className="shrink-0">
-                        {key.provider}
-                      </Badge>
-                      <span className="truncate font-mono text-sm">
-                        ••••{key.last_four}
-                      </span>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="shrink-0"
-                      disabled={remove.isPending}
-                      aria-label={`Delete ${key.provider} API key`}
-                      onClick={async () => {
-                        try {
-                          await remove.mutateAsync(key.provider)
-                          toast.success(`Removed ${key.provider} key.`)
-                        } catch (err) {
-                          const code =
-                            err instanceof ApiError ? err.code : "unknown"
-                          toast.error(messageForCode(code))
-                        }
-                      }}
-                    >
-                      Delete
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+                    Delete
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    </>
   )
 }

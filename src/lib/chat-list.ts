@@ -50,6 +50,7 @@ export function readChatList(userId: string | null | undefined): ChatListItem[] 
 
 export function writeChatList(userId: string, items: ChatListItem[]) {
   localStorage.setItem(storageKey(userId), JSON.stringify(sortByUpdatedAt(items)))
+  notifyChatListUpdated()
 }
 
 /**
@@ -66,7 +67,6 @@ export function syncChatListFromServer(
     updatedAt: c.created_at,
   }))
   writeChatList(userId, items)
-  notifyChatListUpdated()
   return sortByUpdatedAt(items)
 }
 

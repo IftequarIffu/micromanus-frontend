@@ -10,25 +10,24 @@ import {
 import { useNavigate } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { ApiError, parseSseStream, postChatMessageStream } from "@/lib/api"
+import { ApiError, postChatMessageStream } from "@/lib/api"
+import { titleFromContent, upsertChatListItem } from "@/lib/chat-list"
 import {
-  notifyChatListUpdated,
-  titleFromContent,
-  upsertChatListItem,
-} from "@/lib/chat-list"
+  appendAssistantToken,
+  applyToolEnd,
+  applyToolStart,
+  consumeChatSse,
+  finalizeAssistant,
+  localMessageId,
+  markAssistantFailed,
+  PENDING_THREAD_KEY,
+  setAssistantPdf,
+  threadKey,
+} from "@/lib/chat-stream"
 import { messageForCode } from "@/lib/errors"
 import { queryKeys } from "@/lib/query-keys"
-import type {
-  DoneSuccess,
-  StreamPdf,
-  StreamSource,
-  UiMessage,
-  UiToolCall,
-} from "@/lib/types"
+import type { UiMessage } from "@/lib/types"
 import { useAuth } from "@/providers/auth-provider"
-
-/** Thread key for a new chat before `chat_created` assigns a real id. */
-const PENDING_KEY = "__pending__"
 
 type SendArgs = {
   content: string
@@ -52,14 +51,6 @@ type ChatStreamContextValue = {
 
 const ChatStreamContext = createContext<ChatStreamContextValue | null>(null)
 
-function localId(prefix: string) {
-  return `${prefix}_${crypto.randomUUID()}`
-}
-
-function threadKey(chatId: string | null | undefined) {
-  return chatId ?? PENDING_KEY
-}
-
 export function ChatStreamProvider({ children }: { children: ReactNode }) {
   const { token, user, signOut } = useAuth()
   const navigate = useNavigate()
@@ -78,10 +69,7 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
   )
 
   const updateThread = useCallback(
-    (
-      key: string,
-      updater: (prev: UiMessage[]) => UiMessage[]
-    ) => {
+    (key: string, updater: (prev: UiMessage[]) => UiMessage[]) => {
       setThreads((prev) => ({
         ...prev,
         [key]: updater(prev[key] ?? []),
@@ -124,12 +112,12 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
 
       setError(null)
       const userMsg: UiMessage = {
-        id: localId("user"),
+        id: localMessageId("user"),
         role: "user",
         content: trimmed,
         status: "complete",
       }
-      const assistantId = localId("assistant")
+      const assistantId = localMessageId("assistant")
       const assistantMsg: UiMessage = {
         id: assistantId,
         role: "assistant",
@@ -181,24 +169,16 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
           throw new ApiError("empty_stream", 500, "llm_failed")
         }
 
-        let sources: StreamSource[] = []
-        let pdf: StreamPdf | undefined
-        let doneOk = false
-        let finalMessageId: string | undefined
-        let resolvedChatId = chatId ?? activeChatId
-
-        for await (const evt of parseSseStream(res.body)) {
-          if (evt.event === "chat_created") {
-            const newId = evt.data.chatId
-            resolvedChatId = newId
+        const result = await consumeChatSse(res.body, {
+          onChatCreated: (newId) => {
             streamChatIdRef.current = newId
             setStreamingChatId(newId)
             setActiveChatId(newId)
             // Move the pending optimistic thread onto the real chat id.
             setThreads((prev) => {
-              const pending = prev[PENDING_KEY] ?? []
+              const pending = prev[PENDING_THREAD_KEY] ?? []
               const next = { ...prev }
-              delete next[PENDING_KEY]
+              delete next[PENDING_THREAD_KEY]
               next[newId] = pending.length > 0 ? pending : (next[newId] ?? [])
               return next
             })
@@ -208,155 +188,84 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
                 title: titleFromContent(trimmed),
                 updatedAt: new Date().toISOString(),
               })
-              notifyChatListUpdated()
             }
             navigate(`/chat/${newId}`, { replace: true })
-          }
-
-          const key = threadKey(streamChatIdRef.current)
-
-          if (evt.event === "token") {
-            updateThread(key, (prev) =>
-              prev.map((m) =>
-                m.id === assistantId
-                  ? { ...m, content: m.content + evt.data.text }
-                  : m
-              )
+          },
+          onToken: (text) => {
+            updateThread(threadKey(streamChatIdRef.current), (prev) =>
+              appendAssistantToken(prev, assistantId, text)
             )
-          }
-
-          if (evt.event === "pdf_ready") {
-            pdf = { url: evt.data.url, filename: evt.data.filename }
-            updateThread(key, (prev) =>
-              prev.map((m) => (m.id === assistantId ? { ...m, pdf } : m))
+          },
+          onPdfReady: (pdf) => {
+            updateThread(threadKey(streamChatIdRef.current), (prev) =>
+              setAssistantPdf(prev, assistantId, pdf)
             )
-          }
-
-          if (evt.event === "tool_start") {
-            const { toolCallId, toolName } = evt.data
-            updateThread(key, (prev) =>
-              prev.map((m) => {
-                if (m.id !== assistantId) return m
-                const tools = m.tools ?? []
-                if (tools.some((t) => t.toolCallId === toolCallId)) {
-                  return {
-                    ...m,
-                    tools: tools.map((t) =>
-                      t.toolCallId === toolCallId
-                        ? { ...t, toolName, status: "running" as const }
-                        : t
-                    ),
-                  }
-                }
-                const next: UiToolCall = {
-                  toolCallId,
-                  toolName,
-                  status: "running",
-                }
-                return { ...m, tools: [...tools, next] }
-              })
+          },
+          onToolStart: (tool) => {
+            updateThread(threadKey(streamChatIdRef.current), (prev) =>
+              applyToolStart(prev, assistantId, tool)
             )
-          }
-
-          if (evt.event === "tool_end") {
-            const { toolCallId, toolName, ok } = evt.data
-            updateThread(key, (prev) =>
-              prev.map((m) => {
-                if (m.id !== assistantId) return m
-                const tools = m.tools ?? []
-                const status = ok ? ("complete" as const) : ("error" as const)
-                if (tools.some((t) => t.toolCallId === toolCallId)) {
-                  return {
-                    ...m,
-                    tools: tools.map((t) =>
-                      t.toolCallId === toolCallId
-                        ? { ...t, toolName, status }
-                        : t
-                    ),
-                  }
-                }
-                return {
-                  ...m,
-                  tools: [
-                    ...tools,
-                    { toolCallId, toolName, status } satisfies UiToolCall,
-                  ],
-                }
-              })
+          },
+          onToolEnd: (tool) => {
+            updateThread(threadKey(streamChatIdRef.current), (prev) =>
+              applyToolEnd(prev, assistantId, tool)
             )
-          }
-
-          if (evt.event === "error") {
-            const msg = messageForCode(evt.data.code, evt.data.message)
+          },
+          onError: ({ message, code }) => {
+            const msg = messageForCode(code, message)
             setError(msg)
             toast.error(msg)
-          }
-
-          if (evt.event === "done") {
-            if (evt.data.ok) {
-              const done = evt.data as DoneSuccess
-              doneOk = true
-              finalMessageId = done.messageId
-              sources = done.sources ?? []
-              if (done.pdf) pdf = done.pdf
-              resolvedChatId = done.chatId
-              streamChatIdRef.current = done.chatId
-              setStreamingChatId(done.chatId)
-              setActiveChatId(done.chatId)
-              if (user?.id) {
-                upsertChatListItem(
-                  user.id,
-                  {
-                    chatId: done.chatId,
-                    title: titleFromContent(trimmed),
-                    updatedAt: new Date().toISOString(),
-                  },
-                  // Keep the first-message title; don't rename on follow-ups.
-                  { keepTitle: true }
-                )
-                notifyChatListUpdated()
-              }
-              void queryClient.invalidateQueries({ queryKey: queryKeys.credits() })
-              void queryClient.invalidateQueries({ queryKey: queryKeys.chats() })
-              // Refresh cache for later visits; ChatWorkspace skips hydrate while
-              // this thread already has local messages so the reply won't flicker.
-              if (done.chatId) {
-                void queryClient.invalidateQueries({
-                  queryKey: queryKeys.chat(done.chatId),
-                })
-              }
-            } else {
-              doneOk = false
+          },
+          onDoneSuccess: (done) => {
+            streamChatIdRef.current = done.chatId
+            setStreamingChatId(done.chatId)
+            setActiveChatId(done.chatId)
+            if (user?.id) {
+              upsertChatListItem(
+                user.id,
+                {
+                  chatId: done.chatId,
+                  title: titleFromContent(trimmed),
+                  updatedAt: new Date().toISOString(),
+                },
+                // Keep the first-message title; don't rename on follow-ups.
+                { keepTitle: true }
+              )
             }
-          }
-        }
-
-        updateThread(threadKey(streamChatIdRef.current ?? resolvedChatId), (prev) =>
-          prev.map((m) => {
-            if (m.id !== assistantId) return m
-            return {
-              ...m,
-              id: finalMessageId ?? m.id,
-              status: doneOk ? "complete" : "failed",
-              sources,
-              pdf,
-              tools: m.tools,
+            void queryClient.invalidateQueries({
+              queryKey: queryKeys.credits(),
+            })
+            void queryClient.invalidateQueries({ queryKey: queryKeys.chats() })
+            // Refresh cache for later visits; ChatWorkspace skips hydrate while
+            // this thread already has local messages so the reply won't flicker.
+            if (done.chatId) {
+              void queryClient.invalidateQueries({
+                queryKey: queryKeys.chat(done.chatId),
+              })
             }
-          })
+          },
+          onDoneFailure: () => {},
+        })
+
+        updateThread(
+          threadKey(streamChatIdRef.current ?? result.resolvedChatId),
+          (prev) =>
+            finalizeAssistant(prev, assistantId, {
+              doneOk: result.doneOk,
+              finalMessageId: result.finalMessageId,
+              sources: result.sources,
+              pdf: result.pdf,
+            })
         )
 
-        if (!doneOk) {
+        if (!result.doneOk) {
           setError((e) => e ?? "The assistant response failed.")
         }
       } catch (err) {
         const key = threadKey(streamChatIdRef.current ?? chatId ?? activeChatId)
         if (err instanceof DOMException && err.name === "AbortError") {
           updateThread(key, (prev) =>
-            prev.map((m) =>
-              m.id === assistantId && m.status === "streaming"
-                ? { ...m, status: "failed" }
-                : m
-            )
+            markAssistantFailed(prev, assistantId, { onlyIfStreaming: true })
           )
           return
         }
@@ -374,11 +283,7 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
 
         setError(msg)
         toast.error(msg)
-        updateThread(key, (prev) =>
-          prev.map((m) =>
-            m.id === assistantId ? { ...m, status: "failed" } : m
-          )
-        )
+        updateThread(key, (prev) => markAssistantFailed(prev, assistantId))
       } finally {
         setIsStreaming(false)
         setStreamingChatId(null)

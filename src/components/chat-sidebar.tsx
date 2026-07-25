@@ -34,12 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  notifyChatListUpdated,
-  readChatList,
-  removeChatListItem,
-  titleFromContent,
-} from "@/lib/chat-list"
+import { readChatList, removeChatListItem } from "@/lib/chat-list"
 import { messageForCode } from "@/lib/errors"
 import { ApiError } from "@/lib/api"
 import type { ChatListItem } from "@/lib/types"
@@ -54,8 +49,9 @@ export function ChatSidebar() {
   const { isMobile, setOpenMobile } = useSidebar()
   const userId = user?.id
   const { data: me } = useMe()
-  // DB is source of truth; localStorage is a cache (instant paint + offline).
-  const { data: serverChats } = useChats()
+  // DB is source of truth via useChats → syncChatListFromServer; localStorage
+  // is the paint cache (optimistic upserts + instant reload).
+  useChats()
   const { activeChatId, clearThread } = useChatStream()
   const deleteChat = useDeleteChat()
   const [chats, setChats] = useState<ChatListItem[]>(() => readChatList(userId))
@@ -75,19 +71,7 @@ export function ChatSidebar() {
       window.removeEventListener("micromanus:chat-list-updated", refresh)
       window.removeEventListener("storage", refresh)
     }
-  }, [location.pathname, userId])
-
-  // Prefer the latest server payload when present (already synced into localStorage).
-  useEffect(() => {
-    if (!serverChats) return
-    setChats(
-      serverChats.map((c) => ({
-        chatId: c.id,
-        title: titleFromContent(c.title ?? "New chat"),
-        updatedAt: c.created_at,
-      }))
-    )
-  }, [serverChats])
+  }, [userId])
 
   async function confirmDelete() {
     if (!pendingDelete || !userId) return
@@ -95,8 +79,6 @@ export function ChatSidebar() {
     try {
       await deleteChat.mutateAsync(chatId)
       removeChatListItem(userId, chatId)
-      setChats(readChatList(userId))
-      notifyChatListUpdated()
       setPendingDelete(null)
 
       clearThread(chatId)
