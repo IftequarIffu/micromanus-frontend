@@ -162,11 +162,15 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
             setActiveChatId(newId)
             movePendingThread(newId, PENDING_THREAD_KEY)
             if (user?.id) {
-              const next = upsertChatListItem(user.id, {
-                chatId: newId,
-                title: titleFromContent(trimmed),
-                updatedAt: new Date().toISOString(),
-              })
+              const next = upsertChatListItem(
+                user.id,
+                {
+                  chatId: newId,
+                  title: titleFromContent(trimmed),
+                  updatedAt: new Date().toISOString(),
+                },
+                { bump: true }
+              )
               queryClient.setQueryData(queryKeys.chats(user.id), next)
             }
             navigate(`/chat/${newId}`, { replace: true })
@@ -208,8 +212,8 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
                   title: titleFromContent(trimmed),
                   updatedAt: new Date().toISOString(),
                 },
-                // Keep the first-message title; don't rename on follow-ups.
-                { keepTitle: true }
+                // Keep first-message title; follow-ups must not reorder the list.
+                { keepTitle: true, bump: false }
               )
               queryClient.setQueryData(queryKeys.chats(user.id), next)
             }

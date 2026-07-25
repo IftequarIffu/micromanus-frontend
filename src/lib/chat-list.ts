@@ -49,8 +49,10 @@ export function readChatList(userId: string | null | undefined): ChatListItem[] 
 }
 
 export function writeChatList(userId: string, items: ChatListItem[]) {
-  localStorage.setItem(storageKey(userId), JSON.stringify(sortByUpdatedAt(items)))
+  const sorted = sortByUpdatedAt(items)
+  localStorage.setItem(storageKey(userId), JSON.stringify(sorted))
   notifyChatListUpdated()
+  return sorted
 }
 
 /**
@@ -70,19 +72,40 @@ export function syncChatListFromServer(
   return sortByUpdatedAt(items)
 }
 
+/**
+ * Insert or update a sidebar row.
+ * - New chats / `bump: true` move to the top (first message only).
+ * - Follow-ups and title sync update in place and keep position.
+ */
 export function upsertChatListItem(
   userId: string,
   item: ChatListItem,
-  options?: { keepTitle?: boolean }
+  options?: { keepTitle?: boolean; bump?: boolean }
 ) {
   const list = readChatList(userId)
-  const existing = list.find((c) => c.chatId === item.chatId)
+  const existingIndex = list.findIndex((c) => c.chatId === item.chatId)
+  const existing = existingIndex >= 0 ? list[existingIndex] : undefined
   const title =
     options?.keepTitle && existing?.title ? existing.title : item.title
-  const next = list.filter((c) => c.chatId !== item.chatId)
-  next.unshift({ ...item, title })
-  writeChatList(userId, next)
-  return next
+  const bump = options?.bump ?? existingIndex < 0
+
+  const nextItem: ChatListItem = {
+    chatId: item.chatId,
+    title,
+    updatedAt: bump ? item.updatedAt : (existing?.updatedAt ?? item.updatedAt),
+  }
+
+  let next: ChatListItem[]
+  if (existingIndex < 0) {
+    next = [nextItem, ...list]
+  } else if (bump) {
+    next = list.filter((c) => c.chatId !== item.chatId)
+    next.unshift(nextItem)
+  } else {
+    next = list.map((c, i) => (i === existingIndex ? nextItem : c))
+  }
+
+  return writeChatList(userId, next)
 }
 
 export function removeChatListItem(userId: string, chatId: string) {

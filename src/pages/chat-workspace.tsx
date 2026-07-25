@@ -57,14 +57,19 @@ export function ChatWorkspace() {
     if (messages.length > 0) return
 
     if (user?.id) {
-      const next = upsertChatListItem(user.id, {
-        chatId: routeChatId,
-        title: titleFromChat({
-          backendTitle: data.title,
-          messages: data.messages,
-        }),
-        updatedAt: data.created_at,
-      })
+      // Sync title only — opening a chat must not reorder the sidebar.
+      const next = upsertChatListItem(
+        user.id,
+        {
+          chatId: routeChatId,
+          title: titleFromChat({
+            backendTitle: data.title,
+            messages: data.messages,
+          }),
+          updatedAt: data.created_at,
+        },
+        { bump: false }
+      )
       queryClient.setQueryData(queryKeys.chats(user.id), next)
     }
 
