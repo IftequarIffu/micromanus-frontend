@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -57,6 +57,35 @@ export function ChatSidebar() {
   const { activeChatId, clearThread } = useChatStream()
   const deleteChat = useDeleteChat()
   const [pendingDelete, setPendingDelete] = useState<ChatListItem | null>(null)
+  const chatListRef = useRef<HTMLDivElement>(null)
+  const [scrollEdges, setScrollEdges] = useState({ top: false, bottom: false })
+
+  // Soft top/bottom fades while the chat list can scroll in that direction.
+  useEffect(() => {
+    const el = chatListRef.current
+    if (!el) return
+
+    const update = () => {
+      const { scrollTop, scrollHeight, clientHeight } = el
+      const maxScroll = scrollHeight - clientHeight
+      const top = scrollTop > 1
+      const bottom = maxScroll > 1 && scrollTop < maxScroll - 1
+      setScrollEdges((prev) =>
+        prev.top === top && prev.bottom === bottom ? prev : { top, bottom }
+      )
+    }
+
+    update()
+    el.addEventListener("scroll", update, { passive: true })
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    if (el.firstElementChild) ro.observe(el.firstElementChild)
+
+    return () => {
+      el.removeEventListener("scroll", update)
+      ro.disconnect()
+    }
+  }, [chats.length])
 
   // Close the mobile sheet after navigation so it doesn’t cover the page.
   useEffect(() => {
@@ -127,46 +156,63 @@ export function ChatSidebar() {
           </SidebarMenu>
         </SidebarHeader>
 
-        <SidebarContent>
-          <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+        <SidebarContent className="overflow-hidden">
+          <SidebarGroup className="min-h-0 flex-1 group-data-[collapsible=icon]:hidden">
             <SidebarGroupLabel>Chats</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {chats.length === 0 ? (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton disabled>
-                      <span className="text-muted-foreground">
-                        No chats yet
-                      </span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ) : (
-                  chats.map((chat) => (
-                    <SidebarMenuItem key={chat.chatId}>
-                      <SidebarMenuButton
-                        isActive={location.pathname === `/chat/${chat.chatId}`}
-                        render={<Link to={`/chat/${chat.chatId}`} />}
-                        tooltip={chat.title}
-                      >
-                        <span className="truncate">{chat.title}</span>
+            <div className="relative min-h-0 flex-1">
+              <div
+                aria-hidden
+                className="scroll-fade-edge scroll-fade-edge-top"
+                data-visible={scrollEdges.top || undefined}
+              />
+              <div
+                aria-hidden
+                className="scroll-fade-edge scroll-fade-edge-bottom"
+                data-visible={scrollEdges.bottom || undefined}
+              />
+              <SidebarGroupContent
+                ref={chatListRef}
+                className="scrollbar-chat h-full min-h-0 overflow-y-auto"
+              >
+                <SidebarMenu>
+                  {chats.length === 0 ? (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton disabled>
+                        <span className="text-muted-foreground">
+                          No chats yet
+                        </span>
                       </SidebarMenuButton>
-                      <SidebarMenuAction
-                        showOnHover
-                        title="Delete chat"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          setPendingDelete(chat)
-                        }}
-                      >
-                        <Trash2Icon />
-                        <span className="sr-only">Delete chat</span>
-                      </SidebarMenuAction>
                     </SidebarMenuItem>
-                  ))
-                )}
-              </SidebarMenu>
-            </SidebarGroupContent>
+                  ) : (
+                    chats.map((chat) => (
+                      <SidebarMenuItem key={chat.chatId}>
+                        <SidebarMenuButton
+                          isActive={
+                            location.pathname === `/chat/${chat.chatId}`
+                          }
+                          render={<Link to={`/chat/${chat.chatId}`} />}
+                          tooltip={chat.title}
+                        >
+                          <span className="truncate">{chat.title}</span>
+                        </SidebarMenuButton>
+                        <SidebarMenuAction
+                          showOnHover
+                          title="Delete chat"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setPendingDelete(chat)
+                          }}
+                        >
+                          <Trash2Icon />
+                          <span className="sr-only">Delete chat</span>
+                        </SidebarMenuAction>
+                      </SidebarMenuItem>
+                    ))
+                  )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </div>
           </SidebarGroup>
         </SidebarContent>
 
