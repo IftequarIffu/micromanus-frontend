@@ -189,11 +189,11 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply antialiased bg-background text-foreground;
-  }
   html {
-    @apply font-sans;
+    @apply font-sans overflow-x-clip;
+  }
+  body {
+    @apply antialiased bg-background text-foreground overflow-x-clip;
   }
   a,
   button:not(:disabled):not([aria-disabled="true"]),

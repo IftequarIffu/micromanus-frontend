@@ -123,16 +123,18 @@ export function ChatWorkspace() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {showEmpty ? (
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-auto p-6">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <h1>
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-auto p-4 sm:p-6">
+          <div className="flex w-full max-w-3xl flex-col items-center gap-3 text-center">
+            <h1 className="max-w-full px-1">
               <BrandWordmark size="xl" />
             </h1>
-            <p className="text-muted-foreground max-w-md text-sm">
+            <p className="max-w-md text-sm text-pretty text-muted-foreground">
               Pick a model, send a message, and a chat is created for you.
             </p>
           </div>
-          <ChatComposer />
+          <div className="w-full max-w-3xl min-w-0">
+            <ChatComposer />
+          </div>
         </div>
       ) : (
         <div className="relative -mt-14 flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -149,7 +151,7 @@ export function ChatWorkspace() {
                   <ChatThread messages={messages} />
                 )}
               </div>
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-0 sm:px-2">
                 <div className="pointer-events-auto">
                   <ChatComposer chatId={routeChatId} sticky />
                 </div>

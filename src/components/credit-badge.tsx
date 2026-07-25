@@ -27,13 +27,16 @@ export function CreditBadge() {
     )
   }
 
-  const label = `${data.balance.toLocaleString()} credits`
+  const amount = data.balance.toLocaleString()
+  const label = `${amount} credits`
   return (
     <Badge
       variant={data.balance <= 0 ? "destructive" : "secondary"}
       render={<Link to="/credits" aria-label={`${label}. Manage credits`} />}
+      className="max-w-[9.5rem] truncate tabular-nums sm:max-w-none"
     >
-      {label}
+      <span className="sm:hidden">{amount}</span>
+      <span className="hidden sm:inline">{label}</span>
     </Badge>
   )
 }

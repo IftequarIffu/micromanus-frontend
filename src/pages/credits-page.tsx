@@ -36,16 +36,16 @@ export function CreditsPage() {
   }, [checkout, qc])
 
   return (
-    <div className="scrollbar-chat min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:auto]!">
-      <div className="mx-auto flex w-full max-w-xl flex-col gap-6 p-6">
+    <div className="scrollbar-chat min-h-0 flex-1 [scrollbar-gutter:auto]! overflow-y-auto">
+      <div className="mx-auto flex w-full max-w-xl flex-col gap-6 p-4 sm:p-6">
         <div>
           <h1 className="font-heading text-2xl font-semibold tracking-tight">
             Credits
           </h1>
-          <p className="text-muted-foreground text-sm">
-            Platform credits meter micromanus access. Your LLM provider is billed
-            separately via your own key. Add credits by paying with Stripe or by
-            redeeming a coupon — pick either path below.
+          <p className="mt-1 text-sm text-pretty text-muted-foreground">
+            Platform credits meter micromanus access. Your LLM provider is
+            billed separately via your own key. Add credits by paying with
+            Stripe or by redeeming a coupon — pick either path below.
           </p>
         </div>
 
@@ -70,7 +70,8 @@ export function CreditsPage() {
           <Alert variant="destructive">
             <AlertTitle>Couldn’t load credits</AlertTitle>
             <AlertDescription>
-              Check that you’re signed in and the API is reachable, then refresh.
+              Check that you’re signed in and the API is reachable, then
+              refresh.
             </AlertDescription>
           </Alert>
         ) : null}
@@ -109,7 +110,7 @@ export function CreditsPage() {
 
         <div className="flex items-center gap-3">
           <Separator className="flex-1" />
-          <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+          <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
             or
           </span>
           <Separator className="flex-1" />

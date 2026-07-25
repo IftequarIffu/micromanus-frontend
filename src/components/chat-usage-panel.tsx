@@ -34,7 +34,7 @@ export function ChatUsagePanel({ chatId }: ChatUsagePanelProps) {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 p-6">
+      <div className="mx-auto flex w-full max-w-3xl min-w-0 flex-col gap-3 p-4 sm:p-6">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-40 w-full" />
       </div>
@@ -43,7 +43,7 @@ export function ChatUsagePanel({ chatId }: ChatUsagePanelProps) {
 
   if (isError) {
     return (
-      <div className="mx-auto w-full max-w-3xl p-6">
+      <div className="mx-auto w-full max-w-3xl min-w-0 p-4 sm:p-6">
         <Empty className="border">
           <EmptyHeader>
             <EmptyTitle>Couldn’t load usage</EmptyTitle>
@@ -58,7 +58,7 @@ export function ChatUsagePanel({ chatId }: ChatUsagePanelProps) {
 
   if (rows.length === 0) {
     return (
-      <div className="mx-auto w-full max-w-3xl p-6">
+      <div className="mx-auto w-full max-w-3xl min-w-0 p-4 sm:p-6">
         <Empty className="border">
           <EmptyHeader>
             <EmptyTitle>No usage yet</EmptyTitle>
@@ -73,10 +73,10 @@ export function ChatUsagePanel({ chatId }: ChatUsagePanelProps) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 overflow-y-auto p-6">
+    <div className="mx-auto flex scrollbar-chat w-full max-w-3xl min-w-0 flex-col gap-4 overflow-y-auto p-4 sm:p-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-medium">Usage</h2>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-sm text-pretty text-muted-foreground">
           Estimated provider cost from published list prices (BYOK). Platform
           credits are separate.
         </p>
@@ -99,7 +99,7 @@ export function ChatUsagePanel({ chatId }: ChatUsagePanelProps) {
                   <span className="font-medium">
                     {labelById.get(row.modelName) ?? row.modelName}
                   </span>
-                  <span className="text-muted-foreground text-xs">
+                  <span className="text-xs text-muted-foreground">
                     {row.provider}
                   </span>
                 </div>

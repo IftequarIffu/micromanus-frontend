@@ -9,7 +9,7 @@ const brandWordmarkVariants = cva(
         sm: "text-lg",
         md: "text-xl tracking-[-0.045em]",
         lg: "text-4xl tracking-[-0.05em]",
-        xl: "text-5xl tracking-[-0.055em] sm:text-6xl",
+        xl: "text-4xl tracking-[-0.055em] sm:text-5xl md:text-6xl",
       },
     },
     defaultVariants: {

@@ -22,6 +22,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { BrandWordmark } from "@/components/brand-wordmark"
 import { Button } from "@/components/ui/button"
@@ -50,16 +51,20 @@ export function ChatSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { signOut, user } = useAuth()
+  const { isMobile, setOpenMobile } = useSidebar()
   const userId = user?.id
   const { data: me } = useMe()
   // DB is source of truth; localStorage is a cache (instant paint + offline).
   const { data: serverChats } = useChats()
   const { activeChatId, clearThread } = useChatStream()
   const deleteChat = useDeleteChat()
-  const [chats, setChats] = useState<ChatListItem[]>(() =>
-    readChatList(userId)
-  )
+  const [chats, setChats] = useState<ChatListItem[]>(() => readChatList(userId))
   const [pendingDelete, setPendingDelete] = useState<ChatListItem | null>(null)
+
+  // Close the mobile sheet after navigation so it doesn’t cover the page.
+  useEffect(() => {
+    if (isMobile) setOpenMobile(false)
+  }, [location.pathname, isMobile, setOpenMobile])
 
   useEffect(() => {
     const refresh = () => setChats(readChatList(userId))
@@ -124,7 +129,7 @@ export function ChatSidebar() {
                 <Link
                   to="/"
                   aria-label="micromanus home"
-                  className="inline-flex min-w-0 cursor-pointer items-center rounded-lg px-2 py-2 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 group-data-[collapsible=icon]:hidden"
+                  className="inline-flex min-w-0 cursor-pointer items-center rounded-lg px-2 py-2 outline-none group-data-[collapsible=icon]:hidden focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 >
                   <BrandWordmark size="md" />
                 </Link>
@@ -132,10 +137,7 @@ export function ChatSidebar() {
               </div>
             </SidebarMenuItem>
             <SidebarMenuItem className="mt-6">
-              <SidebarMenuButton
-                render={<Link to="/new" />}
-                tooltip="New chat"
-              >
+              <SidebarMenuButton render={<Link to="/new" />} tooltip="New chat">
                 <MessageSquarePlusIcon />
                 <span>New chat</span>
               </SidebarMenuButton>
@@ -151,7 +153,9 @@ export function ChatSidebar() {
                 {chats.length === 0 ? (
                   <SidebarMenuItem>
                     <SidebarMenuButton disabled>
-                      <span className="text-muted-foreground">No chats yet</span>
+                      <span className="text-muted-foreground">
+                        No chats yet
+                      </span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ) : (
@@ -209,9 +213,7 @@ export function ChatSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 tooltip="Sign out"
-                aria-label={
-                  me?.email ? `Sign out (${me.email})` : "Sign out"
-                }
+                aria-label={me?.email ? `Sign out (${me.email})` : "Sign out"}
                 onClick={() => {
                   void signOut().then(() => navigate("/login"))
                 }}

@@ -64,10 +64,13 @@ export function LoginPage() {
         className="relative z-10 flex w-full max-w-sm flex-col gap-8 outline-none"
       >
         <div className="flex flex-col items-center gap-3 text-center">
-          <h1>
-            <BrandWordmark size="lg" />
+          <h1 className="max-w-full">
+            <BrandWordmark
+              size="lg"
+              className="text-[clamp(1.75rem,8vw,2.25rem)]"
+            />
           </h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-sm text-pretty text-muted-foreground">
             Multi-model chat with your own keys, platform credits, and live
             citations.
           </p>

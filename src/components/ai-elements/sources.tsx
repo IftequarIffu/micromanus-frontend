@@ -52,7 +52,7 @@ export const SourcesContent = ({
 }: SourcesContentProps) => (
   <CollapsibleContent
     className={cn(
-      "mt-3 flex w-fit flex-col gap-2",
+      "mt-3 flex w-full max-w-full min-w-0 flex-col gap-2",
       "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
       className
     )}
@@ -64,7 +64,7 @@ export type SourceProps = ComponentProps<"a">;
 
 export const Source = ({ href, title, children, ...props }: SourceProps) => (
   <a
-    className="flex items-center gap-2 rounded-sm text-foreground underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+    className="flex max-w-full min-w-0 items-center gap-2 rounded-sm text-foreground underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
     href={href}
     rel="noreferrer"
     target="_blank"

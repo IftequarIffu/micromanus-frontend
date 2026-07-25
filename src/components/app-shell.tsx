@@ -4,6 +4,7 @@ import { ChartColumnIcon, MessageSquareIcon } from "lucide-react"
 import {
   SidebarInset,
   SidebarProvider,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChatSidebar } from "@/components/chat-sidebar"
@@ -34,7 +35,7 @@ export function AppShell() {
       <ChatSidebar />
       <SidebarInset
         id="main-content"
-        className="relative min-h-0 overflow-hidden"
+        className="relative min-h-0 min-w-0 overflow-hidden"
         tabIndex={-1}
       >
         <Tabs
@@ -44,33 +45,41 @@ export function AppShell() {
           }}
           className="flex h-full min-h-0 flex-1 flex-col gap-0 overflow-hidden"
         >
-          <header className="glass-panel absolute inset-x-0 top-0 z-20 grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-border/50 px-4">
-            <div />
+          <header className="glass-panel absolute inset-x-0 top-0 z-20 grid h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-border/50 px-3 sm:gap-3 sm:px-4">
+            <div className="flex min-w-0 items-center">
+              {/* Opens the sheet on mobile; on desktop the sidebar has its own trigger. */}
+              <SidebarTrigger className="md:hidden" />
+            </div>
 
-            <div className="flex justify-center">
+            <div className="flex min-w-0 justify-center overflow-hidden">
               {showChatTabs ? (
                 <TabsList
                   variant="line"
-                  className="h-9 gap-4 rounded-none bg-transparent p-0"
+                  className="h-9 gap-2 rounded-none bg-transparent p-0 sm:gap-4"
                   aria-label="Chat views"
                 >
-                  <TabsTrigger value="chat" className="flex-none px-1">
+                  <TabsTrigger
+                    value="chat"
+                    className="flex-none px-1"
+                    aria-label="Chat"
+                  >
                     <MessageSquareIcon data-icon="inline-start" />
-                    Chat
+                    <span className="hidden sm:inline">Chat</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="usage"
                     className="flex-none px-1"
+                    aria-label="Usage"
                     disabled={isStreaming && !chatMatch}
                   >
                     <ChartColumnIcon data-icon="inline-start" />
-                    Usage
+                    <span className="hidden sm:inline">Usage</span>
                   </TabsTrigger>
                 </TabsList>
               ) : null}
             </div>
 
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
               <ThemeToggle />
               <CreditBadge />
             </div>

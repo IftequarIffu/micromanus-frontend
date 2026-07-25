@@ -90,109 +90,109 @@ export function ChatComposer({ chatId, sticky = false }: ChatComposerProps) {
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-3xl",
+        "mx-auto w-full max-w-3xl min-w-0",
         sticky &&
           "glass-panel z-20 shrink-0 rounded-t-xl border border-b-0 border-border/50"
       )}
     >
-      <div className="flex flex-col gap-3 p-4">
-      {!hasKey && selected ? (
-        <Alert>
-          <AlertTitle>API key required</AlertTitle>
-          <AlertDescription>
-            Add a {selected.provider} key in{" "}
-            <Link
-              className="rounded-sm underline outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              to="/settings/keys"
-            >
-              Settings → API keys
-            </Link>{" "}
-            before chatting with {selected.label}.
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      {credits && credits.balance <= 0 ? (
-        <Alert>
-          <AlertTitle>Out of credits</AlertTitle>
-          <AlertDescription>
-            Buy a package or redeem a coupon on the{" "}
-            <Link
-              className="rounded-sm underline outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              to="/credits"
-            >
-              credits page
-            </Link>
-            .
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      <PromptInput onSubmit={onSubmit}>
-        <PromptInputBody>
-          <PromptInputTextarea
-            aria-label="Message"
-            placeholder="Ask anything…"
-            disabled={isStreaming || modelsLoading}
-          />
-        </PromptInputBody>
-        <PromptInputFooter>
-          <PromptInputTools>
-            <ModelSelector open={selectorOpen} onOpenChange={setSelectorOpen}>
-              <ModelSelectorTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    aria-label={
-                      selected
-                        ? `Model: ${selected.label}. Change model`
-                        : "Select model"
-                    }
-                  />
-                }
+      <div className="flex flex-col gap-3 p-3 sm:p-4">
+        {!hasKey && selected ? (
+          <Alert>
+            <AlertTitle>API key required</AlertTitle>
+            <AlertDescription>
+              Add a {selected.provider} key in{" "}
+              <Link
+                className="rounded-sm underline outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                to="/settings/keys"
               >
-                <span className="max-w-40 truncate">
-                  {selected?.label ?? "Select model"}
-                </span>
-                <ChevronsUpDownIcon data-icon="inline-end" />
-              </ModelSelectorTrigger>
-              <ModelSelectorContent title="Select a model">
-                <ModelSelectorInput
-                  placeholder="Search models…"
-                  aria-label="Search models"
-                />
-                <ModelSelectorList>
-                  <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
-                  {[...grouped.entries()].map(([provider, list]) => (
-                    <ModelSelectorGroup key={provider} heading={provider}>
-                      {list?.map((m) => (
-                        <ModelSelectorItem
-                          key={m.id}
-                          value={m.id}
-                          onSelect={() => {
-                            setModelId(m.id)
-                            localStorage.setItem(MODEL_STORAGE_KEY, m.id)
-                            setSelectorOpen(false)
-                          }}
-                        >
-                          <ModelSelectorName>{m.label}</ModelSelectorName>
-                        </ModelSelectorItem>
-                      ))}
-                    </ModelSelectorGroup>
-                  ))}
-                </ModelSelectorList>
-              </ModelSelectorContent>
-            </ModelSelector>
-          </PromptInputTools>
-          <PromptInputSubmit
-            status={isStreaming ? "streaming" : "ready"}
-            disabled={!hasKey || !balanceOk || modelsLoading}
-            onStop={stop}
-          />
-        </PromptInputFooter>
-      </PromptInput>
+                Settings → API keys
+              </Link>{" "}
+              before chatting with {selected.label}.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {credits && credits.balance <= 0 ? (
+          <Alert>
+            <AlertTitle>Out of credits</AlertTitle>
+            <AlertDescription>
+              Buy a package or redeem a coupon on the{" "}
+              <Link
+                className="rounded-sm underline outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                to="/credits"
+              >
+                credits page
+              </Link>
+              .
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        <PromptInput onSubmit={onSubmit}>
+          <PromptInputBody>
+            <PromptInputTextarea
+              aria-label="Message"
+              placeholder="Ask anything…"
+              disabled={isStreaming || modelsLoading}
+            />
+          </PromptInputBody>
+          <PromptInputFooter>
+            <PromptInputTools>
+              <ModelSelector open={selectorOpen} onOpenChange={setSelectorOpen}>
+                <ModelSelectorTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                      aria-label={
+                        selected
+                          ? `Model: ${selected.label}. Change model`
+                          : "Select model"
+                      }
+                    />
+                  }
+                >
+                  <span className="max-w-[7.5rem] truncate sm:max-w-40">
+                    {selected?.label ?? "Select model"}
+                  </span>
+                  <ChevronsUpDownIcon data-icon="inline-end" />
+                </ModelSelectorTrigger>
+                <ModelSelectorContent title="Select a model">
+                  <ModelSelectorInput
+                    placeholder="Search models…"
+                    aria-label="Search models"
+                  />
+                  <ModelSelectorList>
+                    <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
+                    {[...grouped.entries()].map(([provider, list]) => (
+                      <ModelSelectorGroup key={provider} heading={provider}>
+                        {list?.map((m) => (
+                          <ModelSelectorItem
+                            key={m.id}
+                            value={m.id}
+                            onSelect={() => {
+                              setModelId(m.id)
+                              localStorage.setItem(MODEL_STORAGE_KEY, m.id)
+                              setSelectorOpen(false)
+                            }}
+                          >
+                            <ModelSelectorName>{m.label}</ModelSelectorName>
+                          </ModelSelectorItem>
+                        ))}
+                      </ModelSelectorGroup>
+                    ))}
+                  </ModelSelectorList>
+                </ModelSelectorContent>
+              </ModelSelector>
+            </PromptInputTools>
+            <PromptInputSubmit
+              status={isStreaming ? "streaming" : "ready"}
+              disabled={!hasKey || !balanceOk || modelsLoading}
+              onStop={stop}
+            />
+          </PromptInputFooter>
+        </PromptInput>
       </div>
     </div>
   )

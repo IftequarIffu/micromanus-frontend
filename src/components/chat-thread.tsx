@@ -114,7 +114,9 @@ function ToolActivity({
   if (!summary) return null
 
   return (
-    <p className="mb-2 text-muted-foreground text-xs tracking-wide">{summary}</p>
+    <p className="mb-2 text-xs tracking-wide text-muted-foreground">
+      {summary}
+    </p>
   )
 }
 
@@ -156,7 +158,7 @@ export function ChatThread({
 
   return (
     <Conversation className="h-full min-h-0">
-      <ConversationContent className="mx-auto w-full max-w-3xl pt-18 pb-40">
+      <ConversationContent className="mx-auto w-full max-w-3xl min-w-0 px-3 pt-18 pb-40 sm:px-4">
         {messages.map((message) => {
           const streaming = message.status === "streaming"
           const hasRunningTool = message.tools?.some(
@@ -187,14 +189,14 @@ export function ChatThread({
 
                     {message.pdf ? (
                       <a
-                        className="mb-3 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium transition-colors outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                        className="mb-3 inline-flex max-w-full min-w-0 items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium transition-colors outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                         href={message.pdf.url}
                         target="_blank"
                         rel="noreferrer"
                       >
                         <FileTextIcon className="size-4 shrink-0" aria-hidden />
-                        View PDF
-                        <span className="max-w-[14rem] truncate text-muted-foreground font-normal">
+                        <span className="shrink-0">View PDF</span>
+                        <span className="min-w-0 truncate font-normal text-muted-foreground">
                           {message.pdf.filename}
                         </span>
                       </a>
@@ -202,7 +204,7 @@ export function ChatThread({
 
                     {message.content ? (
                       <MessageResponse
-                        className="text-[15px] leading-7"
+                        className="max-w-full min-w-0 overflow-x-auto text-[15px] leading-7 [overflow-wrap:anywhere] break-words"
                         isAnimating={streaming}
                       >
                         {message.content}
@@ -210,7 +212,7 @@ export function ChatThread({
                     ) : streaming && !hasRunningTool ? (
                       <StreamingStatus label="Thinking…" />
                     ) : message.status === "failed" ? (
-                      <p className="text-destructive text-sm">
+                      <p className="text-sm text-destructive">
                         Response failed.
                       </p>
                     ) : null}
@@ -222,7 +224,9 @@ export function ChatThread({
                     ) : null}
                   </>
                 ) : (
-                  <div className="whitespace-pre-wrap">{message.content}</div>
+                  <div className="max-w-full min-w-0 [overflow-wrap:anywhere] break-words whitespace-pre-wrap">
+                    {message.content}
+                  </div>
                 )}
               </MessageContent>
             </Message>
