@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react"
-import { Link } from "react-router"
 import { ChevronsUpDownIcon } from "lucide-react"
 import {
   PromptInput,
@@ -24,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useApiKeys, useCredits, useModels } from "@/hooks/use-api"
+import { useAccountDialogs } from "@/providers/account-dialogs-provider"
 import { useChatStream } from "@/providers/chat-stream-provider"
 import { cn } from "@/lib/utils"
 
@@ -38,6 +38,7 @@ type ChatComposerProps = {
 export function ChatComposer({ chatId, sticky = false }: ChatComposerProps) {
   const { data: models, isLoading: modelsLoading } = useModels()
   const { data: keys } = useApiKeys()
+  const { openApiKeys, openCredits } = useAccountDialogs()
   const { data: credits } = useCredits()
   const { sendMessage, isStreaming, stop } = useChatStream()
   const [modelId, setModelId] = useState<string>(() => {
@@ -101,12 +102,13 @@ export function ChatComposer({ chatId, sticky = false }: ChatComposerProps) {
             <AlertTitle>API key required</AlertTitle>
             <AlertDescription>
               Add a {selected.provider} key in{" "}
-              <Link
+              <button
+                type="button"
                 className="rounded-sm underline outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                to="/settings/keys"
+                onClick={() => openApiKeys()}
               >
-                Settings → API keys
-              </Link>{" "}
+                API keys
+              </button>{" "}
               before chatting with {selected.label}.
             </AlertDescription>
           </Alert>
@@ -116,13 +118,14 @@ export function ChatComposer({ chatId, sticky = false }: ChatComposerProps) {
           <Alert>
             <AlertTitle>Out of credits</AlertTitle>
             <AlertDescription>
-              Buy a package or redeem a coupon on the{" "}
-              <Link
+              Buy a package or redeem a coupon in{" "}
+              <button
+                type="button"
                 className="rounded-sm underline outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                to="/credits"
+                onClick={() => openCredits()}
               >
-                credits page
-              </Link>
+                Credits
+              </button>
               .
             </AlertDescription>
           </Alert>

@@ -68,7 +68,7 @@ export function ApiKeyForm() {
   }
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
           <CardTitle>Save a key</CardTitle>
@@ -177,6 +177,6 @@ export function ApiKeyForm() {
           )}
         </CardContent>
       </Card>
-    </>
+    </div>
   )
 }

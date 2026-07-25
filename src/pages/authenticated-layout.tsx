@@ -1,3 +1,4 @@
+import { AccountDialogsProvider } from "@/providers/account-dialogs-provider"
 import { ChatStreamProvider } from "@/providers/chat-stream-provider"
 import { AppShell } from "@/components/app-shell"
 
@@ -5,7 +6,9 @@ import { AppShell } from "@/components/app-shell"
 export function AuthenticatedLayout() {
   return (
     <ChatStreamProvider>
-      <AppShell />
+      <AccountDialogsProvider>
+        <AppShell />
+      </AccountDialogsProvider>
     </ChatStreamProvider>
   )
 }

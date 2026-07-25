@@ -1,10 +1,11 @@
-import { Link } from "react-router"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCredits } from "@/hooks/use-api"
+import { useAccountDialogs } from "@/providers/account-dialogs-provider"
 
 export function CreditBadge() {
   const { data, isLoading, isError } = useCredits()
+  const { openCredits } = useAccountDialogs()
 
   if (isLoading) {
     return (
@@ -20,7 +21,13 @@ export function CreditBadge() {
     return (
       <Badge
         variant="outline"
-        render={<Link to="/credits" aria-label="Credits" />}
+        render={
+          <button
+            type="button"
+            aria-label="Credits"
+            onClick={() => openCredits()}
+          />
+        }
       >
         Credits
       </Badge>
@@ -32,7 +39,13 @@ export function CreditBadge() {
   return (
     <Badge
       variant={data.balance <= 0 ? "destructive" : "secondary"}
-      render={<Link to="/credits" aria-label={`${label}. Manage credits`} />}
+      render={
+        <button
+          type="button"
+          aria-label={`${label}. Manage credits`}
+          onClick={() => openCredits()}
+        />
+      }
       className="max-w-[9.5rem] truncate tabular-nums sm:max-w-none"
     >
       <span className="sm:hidden">{amount}</span>

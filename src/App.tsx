@@ -18,11 +18,10 @@ const ChatWorkspace = lazy(() =>
     default: m.ChatWorkspace,
   }))
 )
-const KeysPage = lazy(() =>
-  import("@/pages/keys-page").then((m) => ({ default: m.KeysPage }))
-)
-const CreditsPage = lazy(() =>
-  import("@/pages/credits-page").then((m) => ({ default: m.CreditsPage }))
+const OpenAccountDialogRoute = lazy(() =>
+  import("@/pages/open-account-dialog-route").then((m) => ({
+    default: m.OpenAccountDialogRoute,
+  }))
 )
 
 const queryClient = new QueryClient({
@@ -66,8 +65,15 @@ export function App() {
                   <Route path="new" />
                   <Route path="chat/:chatId" />
                 </Route>
-                <Route path="settings/keys" element={<KeysPage />} />
-                <Route path="credits" element={<CreditsPage />} />
+                {/* Deep links / Stripe return → open dialogs, then /new. */}
+                <Route
+                  path="settings/keys"
+                  element={<OpenAccountDialogRoute dialog="keys" />}
+                />
+                <Route
+                  path="credits"
+                  element={<OpenAccountDialogRoute dialog="credits" />}
+                />
               </Route>
               <Route path="*" element={<Navigate to="/new" replace />} />
             </Routes>

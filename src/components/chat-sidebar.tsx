@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import {
+  ChevronsUpDownIcon,
   KeyRoundIcon,
   LogOutIcon,
   MessageSquarePlusIcon,
@@ -26,6 +27,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { BrandWordmark } from "@/components/brand-wordmark"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -35,11 +37,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { readChatList } from "@/lib/chat-list"
 import { messageForCode } from "@/lib/errors"
 import { ApiError } from "@/lib/api"
 import { queryKeys } from "@/lib/query-keys"
 import type { ChatListItem } from "@/lib/types"
+import { useAccountDialogs } from "@/providers/account-dialogs-provider"
 import { useAuth } from "@/providers/auth-provider"
 import { useChatStream } from "@/providers/chat-stream-provider"
 import { useChats, useDeleteChat, useMe } from "@/hooks/use-api"
@@ -49,6 +60,7 @@ export function ChatSidebar() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { signOut, user } = useAuth()
+  const { openApiKeys, openCredits } = useAccountDialogs()
   const { isMobile, setOpenMobile } = useSidebar()
   const userId = user?.id
   const { data: me } = useMe()
@@ -57,6 +69,30 @@ export function ChatSidebar() {
   const { activeChatId, clearThread } = useChatStream()
   const deleteChat = useDeleteChat()
   const [pendingDelete, setPendingDelete] = useState<ChatListItem | null>(null)
+  const displayName =
+    me?.name?.trim() ||
+    (typeof user?.user_metadata?.full_name === "string"
+      ? user.user_metadata.full_name.trim()
+      : "") ||
+    (typeof user?.user_metadata?.name === "string"
+      ? user.user_metadata.name.trim()
+      : "") ||
+    "Account"
+  const avatarUrl =
+    (typeof user?.user_metadata?.avatar_url === "string"
+      ? user.user_metadata.avatar_url
+      : "") ||
+    (typeof user?.user_metadata?.picture === "string"
+      ? user.user_metadata.picture
+      : "") ||
+    ""
+  const initials =
+    displayName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "?"
   const chatListRef = useRef<HTMLDivElement>(null)
   const [scrollEdges, setScrollEdges] = useState({ top: false, bottom: false })
 
@@ -219,36 +255,56 @@ export function ChatSidebar() {
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton
-                isActive={location.pathname.startsWith("/settings")}
-                render={<Link to="/settings/keys" />}
-                tooltip="API keys"
-              >
-                <KeyRoundIcon />
-                <span>API keys</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                isActive={location.pathname.startsWith("/credits")}
-                render={<Link to="/credits" />}
-                tooltip="Credits"
-              >
-                <WalletIcon />
-                <span>Credits</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                tooltip="Sign out"
-                aria-label={me?.email ? `Sign out (${me.email})` : "Sign out"}
-                onClick={() => {
-                  void signOut().then(() => navigate("/login"))
-                }}
-              >
-                <LogOutIcon />
-                <span className="truncate">{me?.email ?? "Sign out"}</span>
-              </SidebarMenuButton>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <SidebarMenuButton
+                      size="lg"
+                      tooltip={displayName}
+                      aria-label={`Account menu for ${displayName}`}
+                      className="data-popup-open:bg-sidebar-accent data-popup-open:text-sidebar-accent-foreground"
+                    />
+                  }
+                >
+                  <Avatar size="sm" className="after:border-sidebar-border">
+                    {avatarUrl ? (
+                      <AvatarImage src={avatarUrl} alt="" />
+                    ) : null}
+                    <AvatarFallback>{initials}</AvatarFallback>
+                  </Avatar>
+                  <span className="truncate">{displayName}</span>
+                  <ChevronsUpDownIcon className="ml-auto" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  side="top"
+                  align="start"
+                  sideOffset={4}
+                  className="w-(--anchor-width) min-w-56"
+                >
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem onClick={() => openApiKeys()}>
+                      <KeyRoundIcon />
+                      API Keys
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openCredits()}>
+                      <WalletIcon />
+                      Credits
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => {
+                        void signOut()
+                      }}
+                    >
+                      <LogOutIcon />
+                      Log Out
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
