@@ -36,6 +36,7 @@ import {
 import { messageForCode } from "@/lib/errors"
 import { queryKeys } from "@/lib/query-keys"
 import type { UiMessage } from "@/lib/types"
+import { prefetchChatUsage } from "@/hooks/use-api"
 import { useAuth } from "@/providers/auth-provider"
 
 type SendArgs = {
@@ -227,6 +228,9 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
               void queryClient.invalidateQueries({
                 queryKey: queryKeys.chat(done.chatId),
               })
+              // Warm Usage tab with post-reply totals (balance invalidate above
+              // covers active queries; this fills the cache if the tab is idle).
+              if (token) prefetchChatUsage(queryClient, token, done.chatId)
             }
           },
           onDoneFailure: () => {},

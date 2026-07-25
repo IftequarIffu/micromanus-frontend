@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react"
@@ -36,6 +37,8 @@ export function AccountDialogsProvider({ children }: { children: ReactNode }) {
   const [keysOpen, setKeysOpen] = useState(false)
   const [creditsOpen, setCreditsOpen] = useState(false)
   const [checkout, setCheckout] = useState<CreditsCheckoutStatus | null>(null)
+  // Focus the panel on open — not the first input (which would select "5").
+  const creditsDialogRef = useRef<HTMLDivElement>(null)
 
   const openApiKeys = useCallback(() => {
     setCreditsOpen(false)
@@ -79,7 +82,11 @@ export function AccountDialogsProvider({ children }: { children: ReactNode }) {
           if (!open) setCheckout(null)
         }}
       >
-        <DialogContent className="flex max-h-[min(90svh,40rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
+        <DialogContent
+          ref={creditsDialogRef}
+          initialFocus={creditsDialogRef}
+          className="flex max-h-[min(90svh,40rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
+        >
           <DialogHeader className="shrink-0 border-b border-border/60 px-6 py-5">
             <DialogTitle>Credits</DialogTitle>
             <DialogDescription>

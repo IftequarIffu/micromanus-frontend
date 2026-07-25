@@ -53,7 +53,12 @@ import type { ChatListItem } from "@/lib/types"
 import { useAccountDialogs } from "@/providers/account-dialogs-provider"
 import { useAuth } from "@/providers/auth-provider"
 import { useChatStream } from "@/providers/chat-stream-provider"
-import { useChats, useDeleteChat, useMe } from "@/hooks/use-api"
+import {
+  useChats,
+  useDeleteChat,
+  useMe,
+  usePrefetchChatRoute,
+} from "@/hooks/use-api"
 
 export function ChatSidebar() {
   const location = useLocation()
@@ -66,6 +71,7 @@ export function ChatSidebar() {
   const { data: me } = useMe()
   // React Query owns the list; localStorage is placeholderData inside useChats.
   const { data: chats = [] } = useChats()
+  const prefetchChatRoute = usePrefetchChatRoute()
   const { activeChatId, clearThread } = useChatStream()
   const deleteChat = useDeleteChat()
   const [pendingDelete, setPendingDelete] = useState<ChatListItem | null>(null)
@@ -208,7 +214,7 @@ export function ChatSidebar() {
               />
               <SidebarGroupContent
                 ref={chatListRef}
-                className="scrollbar-chat h-full min-h-0 overflow-y-auto"
+                className="scrollbar-chat h-full min-w-0 min-h-0 overflow-x-hidden overflow-y-auto"
               >
                 <SidebarMenu>
                   {chats.length === 0 ? (
@@ -226,10 +232,19 @@ export function ChatSidebar() {
                           isActive={
                             location.pathname === `/chat/${chat.chatId}`
                           }
-                          render={<Link to={`/chat/${chat.chatId}`} />}
+                          render={
+                            <Link
+                              to={`/chat/${chat.chatId}`}
+                              onMouseEnter={() =>
+                                prefetchChatRoute(chat.chatId)
+                              }
+                              onFocus={() => prefetchChatRoute(chat.chatId)}
+                            />
+                          }
                           tooltip={chat.title}
+                          className="min-w-0"
                         >
-                          <span className="truncate">{chat.title}</span>
+                          <span className="min-w-0 truncate">{chat.title}</span>
                         </SidebarMenuButton>
                         <SidebarMenuAction
                           showOnHover
@@ -262,7 +277,7 @@ export function ChatSidebar() {
                       size="lg"
                       tooltip={displayName}
                       aria-label={`Account menu for ${displayName}`}
-                      className="data-popup-open:bg-sidebar-accent data-popup-open:text-sidebar-accent-foreground"
+                      className="min-w-0 data-popup-open:bg-sidebar-accent data-popup-open:text-sidebar-accent-foreground"
                     />
                   }
                 >
@@ -272,14 +287,14 @@ export function ChatSidebar() {
                     ) : null}
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
-                  <span className="truncate">{displayName}</span>
-                  <ChevronsUpDownIcon className="ml-auto" />
+                  <span className="min-w-0 flex-1 truncate">{displayName}</span>
+                  <ChevronsUpDownIcon className="ml-auto shrink-0" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   side="top"
                   align="start"
                   sideOffset={4}
-                  className="w-(--anchor-width) min-w-56"
+                  className="w-(--anchor-width) min-w-0"
                 >
                   <DropdownMenuGroup>
                     <DropdownMenuItem onClick={() => openApiKeys()}>

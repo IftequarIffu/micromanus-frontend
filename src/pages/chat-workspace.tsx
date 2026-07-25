@@ -15,7 +15,7 @@ import {
   upsertChatListItem,
 } from "@/lib/chat-list"
 import { queryKeys } from "@/lib/query-keys"
-import { useChat } from "@/hooks/use-api"
+import { useChat, usePrefetchChatUsage } from "@/hooks/use-api"
 import { useAuth } from "@/providers/auth-provider"
 import {
   useChatMessages,
@@ -30,7 +30,8 @@ export function ChatWorkspace() {
   const { chatId: routeChatId } = useParams<{ chatId?: string }>()
   const { user } = useAuth()
   const queryClient = useQueryClient()
-  const { data, isLoading, error, isError } = useChat(routeChatId)
+  const { data, isLoading, error, isError, isSuccess } = useChat(routeChatId)
+  const prefetchChatUsage = usePrefetchChatUsage()
   const { hydrateChat, isStreaming, streamingChatId, clearThread } =
     useChatStream()
 
@@ -50,6 +51,12 @@ export function ChatWorkspace() {
     clearedPending.current = true
     clearThread(null)
   }, [routeChatId, clearThread, isStreaming])
+
+  // Warm Usage-tab cache as soon as chat detail is available.
+  useEffect(() => {
+    if (!routeChatId || !isSuccess) return
+    prefetchChatUsage(routeChatId)
+  }, [routeChatId, isSuccess, prefetchChatUsage])
 
   useEffect(() => {
     if (!routeChatId || !data) return

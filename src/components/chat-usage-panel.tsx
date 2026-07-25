@@ -22,7 +22,8 @@ type ChatUsagePanelProps = {
 }
 
 export function ChatUsagePanel({ chatId }: ChatUsagePanelProps) {
-  const { data, isLoading, isError } = useCredits(chatId)
+  // Prefetched when the chat opens / on sidebar hover — usually a cache hit.
+  const { data, isPending, isError, isFetching } = useCredits(chatId)
   const { data: models } = useModels()
 
   const labelById = new Map((models ?? []).map((m) => [m.id, m.label] as const))
@@ -32,7 +33,7 @@ export function ChatUsagePanel({ chatId }: ChatUsagePanelProps) {
   const totalIn = rows.reduce((sum, row) => sum + row.inputTokens, 0)
   const totalOut = rows.reduce((sum, row) => sum + row.outputTokens, 0)
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="mx-auto flex w-full max-w-3xl min-w-0 flex-col gap-3 p-4 sm:p-6">
         <Skeleton className="h-8 w-48" />
@@ -79,6 +80,7 @@ export function ChatUsagePanel({ chatId }: ChatUsagePanelProps) {
         <p className="text-sm text-pretty text-muted-foreground">
           Estimated provider cost from published list prices (BYOK). Platform
           credits are separate.
+          {isFetching ? " · updating…" : null}
         </p>
       </div>
 
