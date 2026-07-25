@@ -277,6 +277,54 @@ When adding or changing UI:
 
 ---
 
+## 3. Resize test & visual polish
+
+Reviewers form an opinion on design sensibility **before** looking at code. Treat fluid layout, typography, spacing, and integrity as build constraints — not a late polish pass.
+
+### 3.1 What they check
+
+- **Fluid responsiveness** — layout reflows smoothly from full-screen down to mobile width; no horizontal scrollbars.
+- **Typographic scale** — headings, body, and muted text stay readable and hierarchical at every width (no clipped or overflowing brand/type).
+- **Spacing consistency** — padding/gaps follow a coherent scale (`p-4` / `sm:p-6`, etc.); pages don’t feel cramped on phone or sparse on desktop without reason.
+- **Layout integrity** — no overlapping chrome, cut-off text, colliding header controls, or “visually careless” stacking.
+
+Overlaps, truncated labels that look accidental, or a UI that only works at one desktop width are a **major red flag**.
+
+### 3.2 How to test
+
+1. Drag the browser window from full-screen down to ~320px width quickly — watch header, sidebar, composer, and page content reflow.
+2. DevTools → **Device Toolbar** — exercise at least **iPhone SE** (~320), a modern phone (~390), and **iPad** (~768).
+3. Spot-check authenticated surfaces: `/new`, `/chat/:id` (long URLs / code / sources if available), `/settings/keys`, `/credits`.
+4. Confirm **no document-level horizontal scrollbar**; wide content (tables, code) may scroll **inside** its container only.
+
+**Pass:** smooth reflow, intact header/composer, readable type, consistent spacing, no collisions.  
+**Fail:** horizontal page scroll, overlapping controls, cut-off text, unreachable mobile nav, pages clipped with no vertical scroll inside the shell.
+
+### 3.3 How to build it (agents)
+
+1. **Mobile chrome first** — below `md`, the sidebar is a sheet. Always expose a **`SidebarTrigger` in the app header** (`md:hidden`); do not rely on `Ctrl/Cmd+B` or a trigger trapped only inside the closed sheet. Close the mobile sheet on route change.
+2. **Flex/grid overflow** — give flex children `min-w-0` (and often `overflow-hidden` / `truncate`) so long titles, emails, model labels, sources, and PDF filenames shrink instead of blowing out the width.
+3. **Header density** — on narrow widths, compress chrome: icon-only tabs with `aria-label`, shorter credit badge text, tighter gaps/`px`. Prefer `grid-cols-[auto_minmax(0,1fr)_auto]` (or similar) over rigid equal columns that collide.
+4. **Shell scroll** — the authenticated shell uses `overflow-hidden` + `h-svh`. Every tall page (`/credits`, `/settings/keys`, usage, etc.) needs its **own** `overflow-y-auto` (and `min-h-0`) — otherwise content is clipped with no scrollbar.
+5. **Chat column** — thread + sticky composer stay `max-w-3xl` / `min-w-0`; message text uses wrap (`break-words` / `overflow-wrap: anywhere`); code/tables scroll inside the message, not the viewport. Match skeleton padding to the live thread.
+6. **Typography** — scale brand and page titles with breakpoints or `clamp` so they don’t overflow on SE-width screens; use `text-pretty` on multi-line supporting copy.
+7. **Safety net** — `overflow-x-clip` on `html`/`body` (and `min-w-0` on `SidebarInset`) prevents accidental page-level horizontal scroll from one runaway child.
+8. **After UI changes** — do the drag-resize + Device Toolbar pass on the surfaces you touched before calling the work done.
+
+### 3.4 Agent implementation rules (copy-friendly)
+
+When adding or changing UI:
+
+1. Build so the first viewport and every breakpoint look intentional — not “desktop only, then hope.”
+2. Never ship a mobile layout without a reachable way to open navigation.
+3. No page-level horizontal scroll; constrain long strings and scroll wide media inside cards/threads.
+4. Keep spacing on a consistent scale; align padding across login, empty chat, thread, keys, and credits.
+5. Ensure every route inside the overflow-hidden shell can scroll its own content.
+6. Compress header/actions on small screens rather than letting controls overlap or clip.
+7. After layout work, verify with window drag + iPhone SE / phone / iPad device modes.
+
+---
+
 ## Future topics
 
 Add new top-level sections here as more QA lessons land (offline, Stripe edge cases, etc.).
