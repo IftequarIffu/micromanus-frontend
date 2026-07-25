@@ -66,6 +66,9 @@ function SidebarProvider({
 }) {
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
+  // Width transitions feel laggy while the window is being resized; keep them
+  // for intentional collapse/expand only.
+  const [isResizing, setIsResizing] = React.useState(false)
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
@@ -107,6 +110,20 @@ function SidebarProvider({
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [toggleSidebar])
 
+  React.useEffect(() => {
+    let timer = 0
+    const onResize = () => {
+      setIsResizing(true)
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => setIsResizing(false), 120)
+    }
+    window.addEventListener("resize", onResize, { passive: true })
+    return () => {
+      window.removeEventListener("resize", onResize)
+      window.clearTimeout(timer)
+    }
+  }, [])
+
   // We add a state so that we can do data-state="expanded" or "collapsed".
   // This makes it easier to style the sidebar with Tailwind classes.
   const state = open ? "expanded" : "collapsed"
@@ -137,6 +154,9 @@ function SidebarProvider({
         }
         className={cn(
           "group/sidebar-wrapper flex min-h-svh w-full has-data-[variant=inset]:bg-sidebar",
+          // Kill layout transitions during live resize so reflow tracks the window.
+          isResizing &&
+            "[&_[data-slot=sidebar-gap]]:transition-none [&_[data-slot=sidebar-container]]:transition-none",
           className
         )}
         {...props}
