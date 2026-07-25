@@ -17,7 +17,10 @@ import {
 import { queryKeys } from "@/lib/query-keys"
 import { useChat } from "@/hooks/use-api"
 import { useAuth } from "@/providers/auth-provider"
-import { useChatStream } from "@/providers/chat-stream-provider"
+import {
+  useChatMessages,
+  useChatStream,
+} from "@/providers/chat-stream-provider"
 
 /**
  * Shared layout for `/new` and `/chat/:chatId` so navigating on `chat_created`
@@ -28,19 +31,14 @@ export function ChatWorkspace() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const { data, isLoading, error, isError } = useChat(routeChatId)
-  const {
-    getMessages,
-    hydrateChat,
-    isStreaming,
-    streamingChatId,
-    clearThread,
-  } = useChatStream()
+  const { hydrateChat, isStreaming, streamingChatId, clearThread } =
+    useChatStream()
 
   // On `/new`, messages live under the pending key until `chat_created` moves
   // them onto the real id — often one frame before the URL updates.
   const threadChatId =
     routeChatId ?? (isStreaming && streamingChatId ? streamingChatId : null)
-  const messages = getMessages(threadChatId)
+  const messages = useChatMessages(threadChatId)
 
   const clearedPending = useRef(false)
   useEffect(() => {
@@ -59,7 +57,7 @@ export function ChatWorkspace() {
     if (messages.length > 0) return
 
     if (user?.id) {
-      upsertChatListItem(user.id, {
+      const next = upsertChatListItem(user.id, {
         chatId: routeChatId,
         title: titleFromChat({
           backendTitle: data.title,
@@ -67,6 +65,7 @@ export function ChatWorkspace() {
         }),
         updatedAt: data.created_at,
       })
+      queryClient.setQueryData(queryKeys.chats(user.id), next)
     }
 
     hydrateChat(routeChatId, chatDetailToUiMessages(data))
@@ -78,6 +77,7 @@ export function ChatWorkspace() {
     streamingChatId,
     messages.length,
     user?.id,
+    queryClient,
   ])
 
   useEffect(() => {
@@ -88,7 +88,8 @@ export function ChatWorkspace() {
     ) {
       return
     }
-    removeChatListItem(user.id, routeChatId)
+    const next = removeChatListItem(user.id, routeChatId)
+    queryClient.setQueryData(queryKeys.chats(user.id), next)
     void queryClient.invalidateQueries({ queryKey: queryKeys.chats() })
     clearThread(routeChatId)
   }, [routeChatId, user?.id, isError, error, clearThread, queryClient])

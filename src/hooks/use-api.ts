@@ -1,10 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, ApiError } from "@/lib/api"
-import { syncChatListFromServer } from "@/lib/chat-list"
+import {
+  readChatList,
+  removeChatListItem,
+  syncChatListFromServer,
+  writeChatList,
+} from "@/lib/chat-list"
 import { queryKeys } from "@/lib/query-keys"
 import type {
   ApiKeyPublic,
   ChatDetail,
+  ChatListItem,
   ChatSummary,
   CheckoutResponse,
   CreditsResponse,
@@ -60,8 +66,8 @@ export function useApiKeys() {
 }
 
 /**
- * Server chat list (DB source of truth). Also rewrites the per-user localStorage
- * cache so clearing storage or deleting rows in the DB stays in sync.
+ * Server chat list (DB source of truth via React Query).
+ * localStorage is only a paint cache (`placeholderData`); the queryFn rewrites it.
  */
 export function useChats() {
   const token = useToken()
@@ -71,16 +77,14 @@ export function useChats() {
   return useQuery({
     queryKey: queryKeys.chats(userId),
     enabled: !!token && !!userId,
-    queryFn: async () => {
+    queryFn: async (): Promise<ChatListItem[]> => {
       const data = await api<{ chats: ChatSummary[] }>("/chats", {
         method: "GET",
         token: token!,
       })
-      if (userId) {
-        syncChatListFromServer(userId, data.chats)
-      }
-      return data.chats
+      return syncChatListFromServer(userId!, data.chats)
     },
+    placeholderData: () => (userId ? readChatList(userId) : []),
     staleTime: 30_000,
   })
 }
@@ -182,6 +186,8 @@ export function useChat(chatId: string | undefined) {
 
 export function useDeleteChat() {
   const token = useToken()
+  const { user } = useAuth()
+  const userId = user?.id
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (chatId: string) =>
@@ -189,6 +195,20 @@ export function useDeleteChat() {
         method: "DELETE",
         token: token!,
       }),
+    onMutate: async (chatId) => {
+      if (!userId) return
+      await qc.cancelQueries({ queryKey: queryKeys.chats(userId) })
+      const previous = qc.getQueryData<ChatListItem[]>(queryKeys.chats(userId))
+      const next = removeChatListItem(userId, chatId)
+      qc.setQueryData(queryKeys.chats(userId), next)
+      return { previous }
+    },
+    onError: (_err, _chatId, ctx) => {
+      if (userId && ctx?.previous) {
+        qc.setQueryData(queryKeys.chats(userId), ctx.previous)
+        writeChatList(userId, ctx.previous)
+      }
+    },
     onSuccess: (_data, chatId) => {
       qc.removeQueries({ queryKey: queryKeys.chat(chatId) })
       void qc.invalidateQueries({ queryKey: queryKeys.chats() })

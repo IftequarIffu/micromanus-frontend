@@ -325,6 +325,68 @@ When adding or changing UI:
 
 ---
 
+## 4. Architecture & code quality (structure / components)
+
+Reviewers open the GitHub repo after visual and interaction tests. They judge whether the app looks like a maintainable frontend — not a demo dump. Criteria often say “Next.js”; **micromanus is Vite + React Router**. Score the same ideas (layers, reuse, logic vs UI), not App Router folders.
+
+### 4.1 What they check
+
+- **Folder structure** — easy to navigate: e.g. `components/`, `lib/`, `hooks/`, `pages/`, `providers/` (a `services/` folder is optional; thin `lib/api` + React Query hooks is enough here).
+- **Reusability** — clear prop interfaces where a component is presentational; shared helpers for repeated mapping/domain updates.
+- **Separation of concerns** — data fetching, domain/stream logic, and UI rendering are not all piled into one giant file.
+- **No god files** — a single file of ~800+ lines that mixes fetch, state, and JSX is a red flag.
+- **No premature abstraction** — over-split hook-per-file, repository classes, or DTO layers “for scale” when a simple module works get penalized too.
+
+### 4.2 How to test (self-review)
+
+1. Sketch the `src/` tree — can a new engineer find API, chat stream, and pages in under a minute?
+2. List the largest **app-owned** files (`wc -l`). Ignore vendored `components/ui/*` and `components/ai-elements/*` size.
+3. Open each large app file and ask: does it mix transport + domain state + markup? Can the non-React parts live in `lib/`?
+4. Check feature components: is page chrome (title, layout wrapper) in `pages/`, with forms/lists as reusable pieces (same pattern as Credits vs Keys)?
+5. Ask whether a proposed “refactor” adds ceremony without clarifying ownership — if yes, skip it.
+
+**Pass:** clear layers; app files stay focused; business logic testable/pure where it matters; no fake architecture.  
+**Fail:** 800-line page/provider mixing everything; unreadable folders; or a maze of abstractions with no benefit.
+
+### 4.3 Target shape (this codebase)
+
+| Layer | Owns |
+| --- | --- |
+| `lib/api.ts` | JSON `api()`, SSE parse, stream POST |
+| `lib/chat-stream.ts` | SSE consume + pure thread message updaters |
+| `lib/chat-messages.ts` | `ChatDetail` → `UiMessage[]` mapping |
+| `lib/chat-list.ts` | Per-user localStorage chat index (write notifies listeners) |
+| `hooks/use-api.ts` | React Query for JSON endpoints |
+| `providers/chat-stream-provider.tsx` | React state, navigation, cache invalidation, wiring to `consumeChatSse` |
+| `pages/*` | Route layout, compose forms/panels |
+| `components/*` | UI (presentational thread, forms, shell) |
+
+SSE stays **outside** React Query and **above** the `/new` → `/chat/:id` outlet (see §1.6 and `AGENTS.md`).
+
+### 4.4 How to build it (agents)
+
+1. **Prefer extract over invent** — when a provider/page grows, pull pure helpers into `lib/` (stream event application, detail→UI mapping). Keep the provider as wiring, not a second API client.
+2. **One owner for chat-list cache** — `writeChatList` / sync/upsert/remove notify via `micromanus:chat-list-updated`. Sidebar reads localStorage; `useChats` rewrites from the DB. Don’t remap the server list in three places.
+3. **Pages compose; forms don’t own the page shell** — titles and scroll wrappers live in `pages/` (`KeysPage`, `CreditsPage`); forms stay cards/fields only.
+4. **Presentational where it pays off** — `ChatThread` takes `messages` props. Hook-bound forms (`ApiKeyForm`, composer) are fine at this size; don’t prop-drill the whole auth/query tree “for purity.”
+5. **Do not add** a full `services/` layer, one file per hook, or repository/DTO stacks until `use-api.ts` or a domain module is clearly too large (~300+ and hard to navigate).
+6. **Do not “fix”** AI Elements / shadcn file length — treat as vendor/registry.
+7. After structural changes, run `tsc --noEmit` and a quick chat smoke (new message → navigate → stream still works).
+
+### 4.5 Agent implementation rules (copy-friendly)
+
+When adding features or refactoring:
+
+1. Put new files in the existing folders; don’t invent parallel trees without a reason.
+2. Keep app-owned modules focused — if fetch + domain + JSX share one file and it’s growing past a few hundred lines, extract the non-UI part to `lib/`.
+3. Separate page chrome from interactive forms/lists.
+4. Reuse pure mappers/updaters (`chatDetailToUiMessages`, stream helpers) instead of copying `useEffect` blobs.
+5. Avoid premature abstraction: the simplest clear structure wins over “enterprise” layering.
+6. Leave vendored UI registries alone; judge structure on app-owned code.
+7. Preserve SSE-above-route and React Query-for-JSON boundaries from `AGENTS.md`.
+
+---
+
 ## Future topics
 
 Add new top-level sections here as more QA lessons land (offline, Stripe edge cases, etc.).

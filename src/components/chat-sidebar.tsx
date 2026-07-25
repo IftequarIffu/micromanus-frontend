@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router"
+import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import {
   KeyRoundIcon,
@@ -34,9 +35,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { readChatList, removeChatListItem } from "@/lib/chat-list"
+import { readChatList } from "@/lib/chat-list"
 import { messageForCode } from "@/lib/errors"
 import { ApiError } from "@/lib/api"
+import { queryKeys } from "@/lib/query-keys"
 import type { ChatListItem } from "@/lib/types"
 import { useAuth } from "@/providers/auth-provider"
 import { useChatStream } from "@/providers/chat-stream-provider"
@@ -45,16 +47,15 @@ import { useChats, useDeleteChat, useMe } from "@/hooks/use-api"
 export function ChatSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { signOut, user } = useAuth()
   const { isMobile, setOpenMobile } = useSidebar()
   const userId = user?.id
   const { data: me } = useMe()
-  // DB is source of truth via useChats → syncChatListFromServer; localStorage
-  // is the paint cache (optimistic upserts + instant reload).
-  useChats()
+  // React Query owns the list; localStorage is placeholderData inside useChats.
+  const { data: chats = [] } = useChats()
   const { activeChatId, clearThread } = useChatStream()
   const deleteChat = useDeleteChat()
-  const [chats, setChats] = useState<ChatListItem[]>(() => readChatList(userId))
   const [pendingDelete, setPendingDelete] = useState<ChatListItem | null>(null)
 
   // Close the mobile sheet after navigation so it doesn’t cover the page.
@@ -62,23 +63,22 @@ export function ChatSidebar() {
     if (isMobile) setOpenMobile(false)
   }, [location.pathname, isMobile, setOpenMobile])
 
+  // Cross-tab: another tab may rewrite the per-user localStorage cache.
   useEffect(() => {
-    const refresh = () => setChats(readChatList(userId))
-    refresh()
-    window.addEventListener("micromanus:chat-list-updated", refresh)
-    window.addEventListener("storage", refresh)
-    return () => {
-      window.removeEventListener("micromanus:chat-list-updated", refresh)
-      window.removeEventListener("storage", refresh)
+    if (!userId) return
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== `micromanus.chat-list.${userId}`) return
+      queryClient.setQueryData(queryKeys.chats(userId), readChatList(userId))
     }
-  }, [userId])
+    window.addEventListener("storage", onStorage)
+    return () => window.removeEventListener("storage", onStorage)
+  }, [userId, queryClient])
 
   async function confirmDelete() {
     if (!pendingDelete || !userId) return
     const { chatId } = pendingDelete
     try {
       await deleteChat.mutateAsync(chatId)
-      removeChatListItem(userId, chatId)
       setPendingDelete(null)
 
       clearThread(chatId)
