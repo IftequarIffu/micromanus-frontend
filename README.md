@@ -55,6 +55,7 @@ Deploy this repo as its **own** Vercel project (separate from the backend).
 | `VITE_SUPABASE_URL` | Same project as the backend |
 | `VITE_SUPABASE_ANON_KEY` | Anon / publishable key only — never the service role |
 | `VITE_API_URL` | Backend origin, e.g. `https://<backend>.vercel.app` (no trailing slash) |
+| `VITE_SITE_URL` | Optional. Canonical public origin for SEO (no trailing slash). Defaults to the current origin in the app; static `og:*` / sitemap use `https://micromanus-frontend.vercel.app` until you customize those files. |
 
 4. Deploy the **backend** first (or re-deploy the frontend after you know the API URL).
 5. On the backend, set `CORS_ORIGINS` to this frontend’s origin and point `CHECKOUT_*_URL` at this host.

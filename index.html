@@ -2,10 +2,82 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark light" />
-    <title>micromanus</title>
+    <meta name="theme-color" content="#c0265a" />
+
+    <title>micromanus — Multi-model chat with your own API keys</title>
+    <meta
+      name="description"
+      content="Chat with GPT, Claude, and Gemini using your own API keys. micromanus streams answers with web citations, PDF tools, and platform credits—no provider markup."
+    />
+    <meta name="robots" content="index,follow" />
+    <!-- Canonical is injected as an absolute same-origin URL by DocumentMeta. -->
+
+    <!-- Open Graph (absolute image URL for crawlers that do not run JS) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="micromanus" />
+    <meta
+      property="og:title"
+      content="micromanus — Multi-model chat with your own API keys"
+    />
+    <meta
+      property="og:description"
+      content="Chat with GPT, Claude, and Gemini using your own API keys. micromanus streams answers with web citations, PDF tools, and platform credits—no provider markup."
+    />
+    <meta
+      property="og:url"
+      content="https://micromanus-frontend.vercel.app/login"
+    />
+    <meta
+      property="og:image"
+      content="https://micromanus-frontend.vercel.app/og-image.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="micromanus — multi-model BYOK chat" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="micromanus — Multi-model chat with your own API keys"
+    />
+    <meta
+      name="twitter:description"
+      content="Chat with GPT, Claude, and Gemini using your own API keys. micromanus streams answers with web citations, PDF tools, and platform credits—no provider markup."
+    />
+    <meta
+      name="twitter:image"
+      content="https://micromanus-frontend.vercel.app/og-image.png"
+    />
+
+
+    <!-- Favicons / install -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "micromanus",
+        "url": "https://micromanus-frontend.vercel.app/login",
+        "description": "Multi-model, bring-your-own-key LLM chat with streaming replies, web citations, PDF tools, and platform credits.",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
+
     <style>
       /* Visible before JS/CSS bundles load (hard reload / OAuth return). */
       #boot-splash {

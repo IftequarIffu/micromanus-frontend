@@ -1,0 +1,8 @@
+# Allow crawling the SPA shell. Auth-gated routes still require a session.
+# Do not Disallow app paths — that fails Lighthouse is-crawlable and blocks
+# rendering-based indexing of the public document. Public URLs are listed
+# in sitemap.xml instead.
+User-agent: *
+Allow: /
+
+Sitemap: https://micromanus-frontend.vercel.app/sitemap.xml

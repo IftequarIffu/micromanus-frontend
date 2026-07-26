@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Spinner } from "@/components/ui/spinner"
+import { DocumentMeta } from "@/components/document-meta"
 import { ProtectedRoute } from "@/components/protected-route"
 import { AuthProvider } from "@/providers/auth-provider"
 import { LoginPage } from "@/pages/login-page"
@@ -47,6 +48,7 @@ export function App() {
       <TooltipProvider>
         <BrowserRouter>
           <AuthProvider>
+            <DocumentMeta />
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route
