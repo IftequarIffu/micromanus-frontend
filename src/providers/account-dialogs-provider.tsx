@@ -1,5 +1,7 @@
 import {
   createContext,
+  lazy,
+  Suspense,
   useCallback,
   useContext,
   useMemo,
@@ -14,11 +16,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { ApiKeyForm } from "@/components/api-key-form"
-import {
-  CreditsPanel,
-  type CreditsCheckoutStatus,
-} from "@/components/credits-panel"
+import { Spinner } from "@/components/ui/spinner"
+import type { CreditsCheckoutStatus } from "@/components/credits-panel"
+
+const ApiKeyForm = lazy(() =>
+  import("@/components/api-key-form").then((m) => ({ default: m.ApiKeyForm }))
+)
+const CreditsPanel = lazy(() =>
+  import("@/components/credits-panel").then((m) => ({ default: m.CreditsPanel }))
+)
 
 type OpenCreditsOptions = {
   checkout?: CreditsCheckoutStatus | null
@@ -32,6 +38,14 @@ type AccountDialogsContextValue = {
 const AccountDialogsContext = createContext<AccountDialogsContextValue | null>(
   null
 )
+
+function DialogBodyFallback() {
+  return (
+    <div className="flex min-h-40 items-center justify-center py-8">
+      <Spinner className="size-5" />
+    </div>
+  )
+}
 
 export function AccountDialogsProvider({ children }: { children: ReactNode }) {
   const [keysOpen, setKeysOpen] = useState(false)
@@ -70,7 +84,11 @@ export function AccountDialogsProvider({ children }: { children: ReactNode }) {
             </DialogDescription>
           </DialogHeader>
           <div className="scrollbar-chat min-h-0 flex-1 overflow-y-auto px-6 py-5">
-            <ApiKeyForm />
+            {keysOpen ? (
+              <Suspense fallback={<DialogBodyFallback />}>
+                <ApiKeyForm />
+              </Suspense>
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>
@@ -95,7 +113,11 @@ export function AccountDialogsProvider({ children }: { children: ReactNode }) {
             </DialogDescription>
           </DialogHeader>
           <div className="scrollbar-chat min-h-0 flex-1 overflow-y-auto px-6 py-5">
-            <CreditsPanel checkout={checkout} />
+            {creditsOpen ? (
+              <Suspense fallback={<DialogBodyFallback />}>
+                <CreditsPanel checkout={checkout} />
+              </Suspense>
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>

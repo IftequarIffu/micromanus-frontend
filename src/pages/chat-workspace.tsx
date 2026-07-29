@@ -1,12 +1,18 @@
-import { useEffect, useRef } from "react"
+import { lazy, Suspense, useEffect, useRef } from "react"
 import { Navigate, Outlet, useParams } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { BrandWordmark } from "@/components/brand-wordmark"
 import { ChatComposer } from "@/components/chat-composer"
 import { ChatThread } from "@/components/chat-thread"
 import { ChatThreadSkeleton } from "@/components/chat-thread-skeleton"
-import { ChatUsagePanel } from "@/components/chat-usage-panel"
+import { Spinner } from "@/components/ui/spinner"
 import { TabsContent } from "@/components/ui/tabs"
+
+const ChatUsagePanel = lazy(() =>
+  import("@/components/chat-usage-panel").then((m) => ({
+    default: m.ChatUsagePanel,
+  }))
+)
 import { ApiError } from "@/lib/api"
 import { chatDetailToUiMessages } from "@/lib/chat-messages"
 import {
@@ -158,7 +164,15 @@ export function ChatWorkspace() {
               value="usage"
               className="min-h-0 flex-1 overflow-hidden pt-14 data-hidden:hidden"
             >
-              <ChatUsagePanel chatId={routeChatId} />
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center">
+                    <Spinner className="size-5" />
+                  </div>
+                }
+              >
+                <ChatUsagePanel chatId={routeChatId} />
+              </Suspense>
             </TabsContent>
           ) : null}
         </div>

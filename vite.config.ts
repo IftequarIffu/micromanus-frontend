@@ -52,6 +52,20 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: "supabase",
+              test: /node_modules[\\/]@supabase[\\/]/,
+            },
+          ],
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {
